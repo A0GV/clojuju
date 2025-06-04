@@ -1,68 +1,69 @@
-  (println "¡Hola, mundo!")
-
+(println "¡Hola, mundo!")
 
 ; Función principal que checa recetas con el número de opciones seleccionadas y threads especificados 
-(defn main [options-file num-threads])
+(defn main [options-file num-threads]
   ; Leer options file y guardar preferencias del usuario 
+  (println (str "Procesando con archivo de opciones: " options-file))
+  (println (str "Número de threads: " num-threads))
   
-  ; Leer todos los archivos de las recetas pmap
+  ; Definir rutas de recetas
+  (def ruta ["recipes/Best Homemade Brownies-1.txt" 
+             "recipes/Chimichurri Sauce.txt" 
+             "recipes/Fettuccine Alfredo.txt"
+             "recipes/Fettuccine Alfredo.txt"
+             "recipes/Fettuccine Alfredo.txt"
+             "recipes/Fettuccine Alfredo.txt"
+             "recipes/Fettuccine Alfredo.txt"
+             "recipes/Fettuccine Alfredo.txt"
+             "recipes/Fettuccine Alfredo.txt"
+             "recipes/Fettuccine Alfredo.txt"
+             "recipes/Fettuccine Alfredo.txt"
+             "recipes/Fettuccine Alfredo.txt"
+             "recipes/Fettuccine Alfredo.txt"
+             "recipes/Fettuccine Alfredo.txt"
+             "recipes/Fettuccine Alfredo.txt"
+             "recipes/Fettuccine Alfredo.txt"])
 
-    ; Tokenización - cantidades, unidades de medida, numero de porciones y temperaturas
-  
-    ; Convertir unidades - tazas, teaspoons, cups, gramos, Fahrenheit a Celsius,  y viceversa
-  
-    ; Calorias totales y por porcion (base de gramos)
-  
-    ; Escala arriba o abajo. Tu programa debe calcular la cantidad de ingredientes necesarios para escalar la receta a un numero de porciones determinado. ACTUALIZAR LO ANTERIOR 
-  
-    ; Filtra:  el programa debe ser capaz de devolver solo las recetas que incluyan una palabra o frase determinada. Revisa la sección Entradas adicionales.
-  
-    ; Agrega texto con resultados (speed up y aceleración para el numero de hilos) 
-  
-  
+  ; Ajustar número de threads para evitar particiones vacías
+  (def n-threads-ajustado (min num-threads (count ruta)))
+  (def chunk-size (int (/ (count ruta) n-threads-ajustado))) ; Tamaño de partición basado en número de threads
+   
+  (def data-chunks 
+    (partition-all chunk-size ruta)) ; Divide la lista de archivos en sublistas según el tamaño de partición
 
-(def ruta ["recipes/Best Homemade Brownies-1.txt" 
-           "recipes/Chimichurri Sauce.txt" 
-           "recipes/Fettuccine Alfredo.txt"
-           "recipes/Fettuccine Alfredo.txt"
-           "recipes/Fettuccine Alfredo.txt"
-           "recipes/Fettuccine Alfredo.txt"
-           "recipes/Fettuccine Alfredo.txt"
-           "recipes/Fettuccine Alfredo.txt"
-           "recipes/Fettuccine Alfredo.txt"
-           "recipes/Fettuccine Alfredo.txt"
-           "recipes/Fettuccine Alfredo.txt"
-           "recipes/Fettuccine Alfredo.txt"
-           "recipes/Fettuccine Alfredo.txt"
-           "recipes/Fettuccine Alfredo.txt"
-           "recipes/Fettuccine Alfredo.txt"
-           "recipes/Fettuccine Alfredo.txt"])
+  ;; (println "\nData chunks:")
+  ;; (println data-chunks)
 
-(def n-threads 10) ; Número de threads ajustable
-(def chunk-size (int (/ (count ruta) n-threads))) ; Tamaño de partición basado en número de threads
- 
-(def data-chunks 
-  (partition-all chunk-size ruta)) ; Divide la lista de archivos en sublistas según el tamaño de partición
+  ;; (println "\nVersión paralela de lectura con partición")
 
-(println "\nData chunks:")
-;; (println data-chunks)
+  ; Función para leer archivos (simula un proceso lento)
+  (defn read-file [archivo]
+    (Thread/sleep 1000) ; Simula un retraso de 1 segundo por archivo 
+    (try
+      (slurp archivo)
+      (catch Exception e
+        (str "Error leyendo " archivo ": " (.getMessage e)))))
+        
 
-(println "\nVersión paralela de lectura con partición")
+  ; Medir tiempo de ejecución y procesar en paralelo
+  (time 
+    (def lectura
+      (apply concat ; Une los resultados de las sublistas
+             (pmap (fn [chunk] (doall (map read-file chunk))) data-chunks))))
 
-; Función para leer archivos (simula un proceso lento)
-(defn read-file [archivo]
-  (Thread/sleep 1000) ; Simula un retraso de 1 segundo por archivo 
-    (slurp archivo)) 
-      
+  ; Tokenización - cantidades, unidades de medida, numero de porciones y temperaturas
+  ; Convertir unidades - tazas, teaspoons, cups, gramos, Fahrenheit a Celsius,  y viceversa
+  ; Calorias totales y por porcion (base de gramos)
+  ; Escala arriba o abajo. Tu programa debe calcular la cantidad de ingredientes necesarios para escalar la receta a un numero de porciones determinado. ACTUALIZAR LO ANTERIOR 
+  ; Filtra:  el programa debe ser capaz de devolver solo las recetas que incluyan una palabra o frase determinada. Revisa la sección Entradas adicionales.
+  ; Agrega texto con resultados (speed up y aceleración para el numero de hilos) 
 
-; Medir tiempo de ejecución y procesar en paralelo
-(time 
-  (def lectura
-    (apply concat ; Une los resultados de las sublistas
-           (pmap (fn [chunk] (doall (map read-file chunk))) data-chunks))))
+  ;; (println "\nContenido de las recetas:")
+  ;; (println lectura)
+  )
+  ; Retornar los datos para uso posterior
 
-;; (println "\nContenido de las recetas:")
-(println lectura)
-;; Ocupo usear partition all, variable de threads, variable de time, poder ajustar el numero de threadsa que se usa
 ; Pasar input file y el número de threads para probarlo
-(main options1.txt 1)
+(main "options1.txt" 1)
+(main "options1.txt" 6)
+(main "options1.txt" 10)
