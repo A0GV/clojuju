@@ -1,5 +1,8 @@
 (println "¡Hola, mundo!")
 
+; To read file 
+(require '[clojure.java.io :as io]) 
+
 ; Definiciones de regex
 ;; Opciones de usuario 
 (def rg-system (list "system" #"^system:"))
@@ -7,6 +10,13 @@
 (def rg-u-tsp (list "user-tsp" #"^teaspoon"))
 (def rg-u-met (list "user-metric" #"^metric"))
 
+;; FILE READING
+; Funct to read file line by line
+(defn read-file-lines [file-path]
+    (with-open [reader (io/reader file-path)]
+        (doall (line-seq reader))
+   )
+)
 
 ; Diccionario de tokens de configuraciones del usuario 
 (def dict-user (list 
@@ -40,13 +50,20 @@
 ; Función principal que checa recetas con el número de opciones seleccionadas y threads especificados 
 (defn main [options-file num-threads]
   ; Leer options file y guardar preferencias del usuario 
-  (def file-path (str "options/" options-file ".txt"))
-  (println "FILE PATH: " file-path)
-  (def txt-user-opt (slurp file-path))
-  (println "USER INPUT\n" txt-user-opt)
+  (def options-path (str "options/" options-file ".txt"))
+  (println "FILE PATH: " options-path)
+  ;(def txt-user-opt (slurp file-path))
+  ;(println "USER INPUT\n" txt-user-opt)
+
+  (def file-lines (read-file-lines options-path))
+  (println "USER INPUT\n" file-lines)
+  (println "LINE BY LINE")
+  ;(def opt-lines (list (map (fn [line] (println line)) file-lines)) )
+  (def opt-lines (map list file-lines))
+  (println opt-lines)
 
   ; Extraer preferencias 
-  (tokenize txt-user-opt dict-user)
+  ;(tokenize file-lines dict-user)
 
 
   
