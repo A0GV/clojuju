@@ -42,8 +42,13 @@
 
 ; Keeps the longest match
 (defn tokenize [input rg-dict]
-    (println "Using dictionary\n" dict-user)
-    (println "File using\n" input)
+    ;(println "Using dictionary\n" dict-user)
+    ;(println "Reading: " input)
+    (cond
+        ; Base case input is empty
+        (zero? (count input) )
+    )
+    
 )
 
 
@@ -57,13 +62,19 @@
 
   (def file-lines (read-file-lines options-path))
   (println "USER INPUT\n" file-lines)
+
   (println "LINE BY LINE")
   ;(def opt-lines (list (map (fn [line] (println line)) file-lines)) )
   (def opt-lines (map list file-lines))
   (println opt-lines)
 
-  ; Extraer preferencias 
-  ;(tokenize file-lines dict-user)
+  ; Tokenize preferencias 
+  ;(doall 
+  ;  (def opt-tokenized (list (map (fn[current-line] (tokenize current-line dict-user)) opt-lines)))
+  ;)
+  (let [opt-tokenized (doall (map (fn [current-line] (tokenize current-line dict-user)) opt-lines))]
+  (println "Tokenized options:\n" opt-tokenized))
+  
 
 
   
