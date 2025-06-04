@@ -1,4 +1,5 @@
 (println "¡Hola, mundo!")
+(require '[clojure.java.io :as io]) 
 
 ; Función principal que checa recetas con el número de opciones seleccionadas y threads especificados 
 (defn main [options-file num-threads]
@@ -37,13 +38,12 @@
   ;; (println "\nVersión paralela de lectura con partición")
 
   ; Función para leer archivos (simula un proceso lento)
-  (defn read-file [archivo]
-    (Thread/sleep 1000) ; Simula un retraso de 1 segundo por archivo 
-    (try
-      (slurp archivo)
-      (catch Exception e
-        (str "Error leyendo " archivo ": " (.getMessage e)))))
-        
+  (defn read-file [file-path]
+    (Thread/sleep 1000)
+    (with-open [reader (io/reader file-path)]
+        (doall (line-seq reader))
+   )
+)      
 
   ; Medir tiempo de ejecución y procesar en paralelo
   (time 
