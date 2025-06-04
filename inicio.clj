@@ -25,3 +25,4 @@
 (println lectura)
 
 ; Pasar input file y el número de threads para probarlo
+(main options1.txt 1)
