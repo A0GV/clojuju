@@ -1,25 +1,54 @@
 (println "¡Hola, mundo!")
 
 ; Definiciones de regex
+;; Opciones de usuario 
 (def rg-system (list "system" #"^system:"))
 (def rg-u-cup (list "user-cup" #"^cup"))
 (def rg-u-tsp (list "user-tsp" #"^teaspoon"))
 (def rg-u-met (list "user-metric" #"^metric"))
 
 
-; Diccionario de tokens 
-(def dict (list 
+; Diccionario de tokens de configuraciones del usuario 
+(def dict-user (list 
     rg-system 
     rg-u-cup rg-u-tsp rg-u-met
 ))
+
+; TOKENIZACIÓN
+; Finds all matches for item in regex given input text and corresponding dictionary
+(defn all-matches [input-text rg-dict]
+    (println "All matches!")
+)
+
+; Finds length of longest matched text (to keep longest token)
+(defn get-max-len [match-list]
+    (println "Get maximum length string of all of the matches")
+)
+
+; Filters tokens using max length found
+(defn filter-max [matches max-len]
+    (println "Keeping only the longest one")
+)
+
+; Keeps the longest match
+(defn tokenize [input rg-dict]
+    (println "Using dictionary\n" dict-user)
+    (println "File using\n" input)
+)
+
 
 ; Función principal que checa recetas con el número de opciones seleccionadas y threads especificados 
 (defn main [options-file num-threads]
   ; Leer options file y guardar preferencias del usuario 
   (def file-path (str "options/" options-file ".txt"))
-  (println "File path: " file-path)
+  (println "FILE PATH: " file-path)
   (def txt-user-opt (slurp file-path))
-  (println "User input: " txt-user-opt)
+  (println "USER INPUT\n" txt-user-opt)
+
+  ; Extraer preferencias 
+  (tokenize txt-user-opt dict-user)
+
+
   
   ; Leer todos los archivos de las recetas pmap
     ; Tokenización - cantidades, unidades de medida, numero de porciones y temperaturas
