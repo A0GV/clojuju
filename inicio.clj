@@ -39,7 +39,7 @@
 
   ; Función para leer archivos (simula un proceso lento)
   (defn read-file [file-path]
-    (Thread/sleep 1000)
+    ;; (Thread/sleep 1000) ;;Lo deje comentario pero sirve comom para checar si si lo hace mas rapido
     (with-open [reader (io/reader file-path)]
         (doall (line-seq reader))
    )
