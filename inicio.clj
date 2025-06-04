@@ -10,7 +10,7 @@
 
     ; Convertir unidades - tazas, teaspoons, cups, gramos, Fahrenheit a Celsius,  y viceversa
 
-    ; Calorias totales y por porcion
+    ; Calorias totales y por porcion (base de gramos)
 
     ; Escala arriba o abajo. Tu programa debe calcular la cantidad de ingredientes necesarios para escalar la receta a un numero de porciones determinado. ACTUALIZAR LO ANTERIOR 
 
