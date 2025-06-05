@@ -58,8 +58,8 @@
   ; Filtra:  el programa debe ser capaz de devolver solo las recetas que incluyan una palabra o frase determinada. Revisa la sección Entradas adicionales.
   ; Agrega texto con resultados (speed up y aceleración para el numero de hilos) 
 
-  ;; (println "\nContenido de las recetas:")
-  ;; (println lectura)
+  (println "\nContenido de las recetas:")
+  (println lectura)
   )
   ; Retornar los datos para uso posterior
 
