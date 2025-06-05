@@ -1,9 +1,52 @@
 (println "¡Hola, mundo!")
 (require '[clojure.java.io :as io]) 
+(require '[clojure.string :as str]) ; To trim string
+
+; Definiciones de regex
+;; Opciones de usuario 
+(def rg-system (list "r-system" #"^system:"))
+(def rg-u-cup (list "user-cup" #"^cup"))
+(def rg-u-tsp (list "user-tsp" #"^teaspoon"))
+(def rg-u-met (list "user-metric" #"^metric"))
+
+(def rg-temp (list "r-temp" #"^temp:"))
+(def rg-c (list "t-cel" #"^C"))
+(def rg-f (list "t-far" #"^F"))
+
+(def rg-portions (list "r-portions" #"^portions:"))
+(def rg-num-port (list "num-portions" #"^[0-9]+")) ; DECIMALS??
+
+(def rg-filter (list "r-filter" #"^filter:"))
+(def rg-all (list "r-all" #"^all")) ; Keeps all recipes 
+(def rg-other (list "custom-filter" #"^[a-z]+"))
+
+;; FILE READING
+; Funct to read file line by line
+(defn read-file-lines [file-path]
+    (with-open [reader (io/reader file-path)]
+        (doall (line-seq reader))
+   )
+)
+
 
 ; Función principal que checa recetas con el número de opciones seleccionadas y threads especificados 
 (defn main [options-file num-threads]
   ; Leer options file y guardar preferencias del usuario 
+  (def options-path (str "options/" options-file))
+  (println "\n-------FILE PATH: " options-path)
+  ;(def txt-user-opt (slurp file-path))
+  ;(println "USER INPUT\n" txt-user-opt)
+
+  (def file-lines (read-file-lines options-path))
+  (println "\n-------USER INPUT\n" file-lines)
+
+  (println "\n-------LINE BY LINE")
+  ;(def opt-lines (list (map (fn [line] (println line)) file-lines)) )
+  (def opt-lines (map list file-lines))
+  (println opt-lines)
+
+  ; Leer recetas
+  (println "\n-------READ RECIPES")
   (println (str "Procesando con archivo de opciones: " options-file))
   (println (str "Número de threads: " num-threads))
   
@@ -46,6 +89,7 @@
 )      
 
   ; Medir tiempo de ejecución y procesar en paralelo
+  (println "\n-------TOTAL TIME")
   (time 
     (def lectura
       (apply concat ; Une los resultados de las sublistas
@@ -65,5 +109,7 @@
 
 ; Pasar input file y el número de threads para probarlo
 (main "options1.txt" 1)
-(main "options1.txt" 6)
-(main "options1.txt" 10)
+;(main "options1.txt" 6)
+;(main "options1.txt" 10)
+
+(main "options2.txt" 1)
