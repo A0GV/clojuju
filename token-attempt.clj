@@ -13,15 +13,15 @@
 (def rg-u-met (list "user-metric" #"^metric"))
 
 (def rg-temp (list "r-temp" #"^temp:"))
-(def rg-c (list "cel" #"^C"))
-(def rg-f (list "cel" #"^F"))
+(def rg-c (list "t-cel" #"^C"))
+(def rg-f (list "t-far" #"^F"))
 
 (def rg-portions (list "r-portions" #"^portions:"))
-(def rg-num-port (list "r-num-portions" #"^[0-9]+")) ; DECIMALS??
+(def rg-num-port (list "num-portions" #"^[0-9]+")) ; DECIMALS??
 
 (def rg-filter (list "r-filter" #"^filter:"))
 (def rg-all (list "r-all" #"^all")) ; Keeps all recipes 
-(def rg-other (list "r-custom-filter" #"^[a-z]+"))
+(def rg-other (list "custom-filter" #"^[a-z]+"))
 
 
 
@@ -45,7 +45,7 @@
     rg-num-port
     
     rg-filter
-    rg-all ;rg-other
+    rg-all rg-other
 ))
 
 ; TOKENIZACIÓN
@@ -93,7 +93,7 @@
     (filter
         (fn [match] 
             (= (count (second match)) max-len)
-        )
+        ) matches
     )
 )
 
@@ -109,7 +109,6 @@
 
             ; Else finds the longest match of those found 
             :else 
-            (
                 ; Finds longest match 
                 (let [
                     longest-len (get-max-len all-found-matches)
@@ -119,7 +118,6 @@
                     ; Once found, body just returns thel ongest one
                     (first longest-matches)
                 )
-            )
         )
     )
 )
@@ -212,4 +210,5 @@
 ;(def userOptions (slurp "options/options1.txt"))
 ;(println userOptions)
 
-(main "options1" 1)
+;(main "options1" 1)
+(main "options2" 1)
