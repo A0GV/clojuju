@@ -84,6 +84,13 @@
 (def rg-for-dusting (list "for-dusting" #"\bfor\s+dusting\b"))
 
 ;(def rg-phrases (list "phrases" #"^[a-zA-Z0-9 ,\.\(\)]+"))
+; Other words 
+(def rg-serves (list "serves-amt" #"^(Serves\s*-\s*|Servings\s*-\s*)[0-9]+\b"))
+(def rg-temp-c (list "temp-C" #"^[0-9]+°C"))
+(def rg-temp-f (list "temp-C" #"^[0-9]+°C"))
+(def rg-pt (list "prep-t" #"^(Prep Time: [0-9]+\s*(mins | minutes | minutesmins))"))
+
+
 
 ;; Dictionary of numbers
 (def dict-recipe (list
@@ -127,6 +134,11 @@
                     rg-large
                     rg-to-taste
                     rg-for-dusting
+
+                    ; Adding
+                    rg-serves
+                    rg-temp-c rg-temp-f
+                    rg-pt
 
 ))
 
