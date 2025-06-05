@@ -20,6 +20,21 @@
 (def rg-all (list "r-all" #"^all")) ; Keeps all recipes 
 (def rg-other (list "custom-filter" #"^[a-z]+"))
 
+;; Dictionary of tokens
+(def dict-user (list 
+    rg-system
+    rg-u-cup rg-u-tsp rg-u-met
+    
+    rg-temp 
+    rg-c rg-f
+    
+    rg-portions 
+    rg-num-port
+    
+    rg-filter
+    rg-all rg-other
+))
+
 ;; FILE READING
 ; Funct to read file line by line
 (defn read-file-lines [file-path]
@@ -28,22 +43,135 @@
    )
 )
 
+; TOKENIZACIÓN
+; Finds all matches for item in regex given input text and corresponding dictionary
+(defn all-matches [input-text rg-dict]
+    ;(println "All matches!")
+    ;(display "Input text: " input-text)
+
+    (filter
+        ; Keep only defs that are not false 
+        (fn [match-result] (not (nil? match-result)))
+        ; And now compare against every item in the specified dictionary
+        (map
+            (fn [regex-item]
+                (let [
+                    token-name (first regex-item) ; Gets the name of that token
+                    rg-pattern  (second regex-item) ; Regex pattern
+                    matched-txt (re-find rg-pattern input-text)]  ; String that was matched (nil if not found)
+                    
+                    ; If nil, then just returns a false to later filter it out
+                    ;(if (nil? matched-txt) false)
+                    (if matched-txt
+                        ; Did find a match, builds list of token name and 
+                        (list token-name matched-txt)
+                        nil)
+                )
+            )
+        rg-dict)
+    )
+)
+
+; Uses text from tokens to find which one is longest 
+(defn get-max-len [match-list]
+    ;(println "Get maximum length string of all of the matches")
+    (apply max
+        (map
+           (fn [match] (count (second match)))
+        match-list)
+    )
+)
+
+; Uses item matched from list and keeps only the one that meets the longest length found  
+(defn filter-max [matches max-len]
+    ;(println "Keeping only the longest one")
+    (filter
+        (fn [match] 
+            (= (count (second match)) max-len)
+        ) matches
+    )
+)
+
+; Finds the longest matched token of the current item being read
+(defn longest-match [input-item rg-dict]
+    (let [all-found-matches (all-matches input-item rg-dict)]
+        (cond
+            ; Did not find a match, returns an unregognized for symbol
+            (empty? all-found-matches) (list "No reconocido" (subs input-item 0 1)) 
+
+            ; Only one match, just returns that one 
+            (= 1 (count all-found-matches)) (first all-found-matches)
+
+            ; Else finds the longest match of those found 
+            :else 
+                ; Finds longest match 
+                (let [
+                    longest-len (get-max-len all-found-matches)
+                    longest-matches (filter-max all-found-matches longest-len)
+                    ]
+
+                    ; Once found, body just returns thel ongest one
+                    (first longest-matches)
+                )
+        )
+    )
+)
+
+; Keeps the longest match
+(defn tokenize [input rg-dict]
+    ;(println "Using dictionary\n" dict-user)
+    ;(println "Reading: " input)
+    ; Base case input empty
+    (cond
+        (zero? (count (str/trim input)))
+        ;(count (str/trim input)) ; Returns length of trimmed 
+        '() ; Returns done list
+    :else 
+        ; List of token and matched substring 
+        (let [
+            ; Head de variables 
+            type-txtmatch (longest-match (str/trim input) rg-dict)
+            ; Builds the substring
+            extracted-txt (second type-txtmatch) ; Finds the token text
+            length (count extracted-txt) ; Counts how long the token text is
+
+            ; For recursive to start at next element (excluding whitespace)
+            rest-input (subs (str/trim input) length)
+            ]
+            ; Ahora el body para build list 
+            (cons 
+                (list (first type-txtmatch) extracted-txt)
+                (tokenize rest-input rg-dict)
+            )
+        )
+    )
+)
+
 
 ; Función principal que checa recetas con el número de opciones seleccionadas y threads especificados 
 (defn main [options-file num-threads]
   ; Leer options file y guardar preferencias del usuario 
   (def options-path (str "options/" options-file))
   (println "\n-------FILE PATH: " options-path)
-  ;(def txt-user-opt (slurp file-path))
-  ;(println "USER INPUT\n" txt-user-opt)
 
   (def file-lines (read-file-lines options-path))
-  (println "\n-------USER INPUT\n" file-lines)
+  (println "\n-------USER PREFERENCES\n" file-lines)
 
   (println "\n-------LINE BY LINE")
   ;(def opt-lines (list (map (fn [line] (println line)) file-lines)) )
   (def opt-lines (map list file-lines))
   (println opt-lines)
+
+  (def opt-tokenized
+    (doall 
+        (map (fn [current-line] 
+            (tokenize (first current-line) dict-user)) 
+        opt-lines)
+    )
+  )
+
+  (println "\n-------TOKENIZED")
+  (println opt-tokenized)
 
   ; Leer recetas
   (println "\n-------READ RECIPES")
