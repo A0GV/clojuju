@@ -36,7 +36,99 @@
 ))
 
 ;; Recetas
+; Regex para números enteros
+(def rg-nums-int (list "number-integer" #"^[0-9]+\b"))
 
+; Regex para fracciones simples
+(def rg-nums-frac (list "number-fraction" #"^[0-9]+/[0-9]+\b"))
+
+; Regex para fracciones mixtas
+(def rg-nums-mixed (list "number-mixed" #"^[0-9]+\s+[0-9]+/[0-9]+\b"))
+
+; Regex para ingredientes (case sensitive)
+(def rg-sugar (list "ingredient-sugar" #"\b(?:granulated\s+)?sugar\b"))
+(def rg-flour (list "ingredient-flour" #"\b(?:all-purpose\s+|almond\s+)?flour\b"))
+(def rg-cocoa (list "ingredient-cocoa" #"\bcocoa\s+powder\b"))
+(def rg-powdered-sugar (list "ingredient-powdered-sugar" #"\bpowdered\s+sugar\b"))
+(def rg-chocolate (list "ingredient-chocolate" #"\bdark\s+chocolate\s+chips\b"))
+(def rg-salt (list "ingredient-salt" #"\b(?:sea\s+|kosher\s+)?salt\b"))
+(def rg-eggs (list "ingredient-eggs" #"\beggs?\b"))
+(def rg-oil (list "ingredient-oil" #"\b(?:canola\s+|extra-virgin\s+olive\s+)?oil\b"))
+(def rg-water (list "ingredient-water" #"\bwater\b"))
+(def rg-vanilla (list "ingredient-vanilla" #"\bvanilla(?:\s+extract)?\b"))
+(def rg-baking-powder (list "ingredient-baking-powder" #"\bbaking\s+powder\b"))
+(def rg-lemon-zest (list "ingredient-lemon-zest" #"\blemon\s+zest(?:\s+\(grated\))?\b"))
+(def rg-lemon-juice (list "ingredient-lemon-juice" #"\b(?:fresh\s+)?lemon\s+juice\b"))
+(def rg-pasta (list "ingredient-pasta" #"\b(?:dry\s+)?fettuccine\s+pasta\b"))
+(def rg-butter (list "ingredient-butter" #"\bbutter\b"))
+(def rg-cream (list "ingredient-cream" #"\bheavy\s+cream\b"))
+(def rg-pepper (list "ingredient-pepper" #"\b(?:red\s+pepper\s+flakes|pepper)\b"))
+(def rg-garlic-salt (list "ingredient-garlic-salt" #"\bgarlic\s+salt\b"))
+(def rg-romano (list "ingredient-romano" #"\bgrated\s+romano\s+cheese\b"))
+(def rg-parmesan (list "ingredient-parmesan" #"\bgrated\s+parmesan\s+cheese\b"))
+(def rg-vinegar (list "ingredient-vinegar" #"\bwhite\s+wine\s+vinegar\b"))
+(def rg-garlic (list "ingredient-garlic" #"\bgarlic\s+clove(?:\s+\(minced\))?\b"))
+(def rg-oregano (list "ingredient-oregano" #"\bdried\s+oregano\b"))
+(def rg-paprika (list "ingredient-paprika" #"\bsmoked\s+paprika\b"))
+(def rg-parsley (list "ingredient-parsley" #"\b(?:fresh\s+)?flat-leaf\s+parsley\b"))
+
+(def rg-cup (list "cup" #"\bcups?\b"))
+(def rg-teaspoon (list "teaspoon" #"\bteaspoons?\b"))
+(def rg-tablespoon (list "tablespoon" #"\btablespoons?\b"))
+(def rg-ounce (list "ounce" #"\bounces?\b"))
+(def rg-pint (list "pint" #"\bpints?\b"))
+(def rg-dash (list "dash" #"\bdash(?:es)?\b"))
+(def rg-clove (list "clove" #"\bcloves?\b"))
+(def rg-large (list "large" #"\blarge\b"))
+(def rg-to-taste (list "to-taste" #"\bto\s+taste\b"))
+(def rg-for-dusting (list "for-dusting" #"\bfor\s+dusting\b"))
+
+;; Dictionary of numbers
+(def dict-numbers (list
+                   rg-nums-int
+                   rg-nums-frac
+                   rg-nums-mixed))
+
+;; Dictionary of ingredients
+(def dict-ingredients (list
+                       rg-sugar
+                       rg-flour
+                       rg-cocoa
+                       rg-powdered-sugar
+                       rg-chocolate
+                       rg-salt
+                       rg-eggs
+                       rg-oil
+                       rg-water
+                       rg-vanilla
+                       rg-baking-powder
+                       rg-lemon-zest
+                       rg-lemon-juice
+                       rg-pasta
+                       rg-butter
+                       rg-cream
+                       rg-pepper
+                       rg-garlic-salt
+                       rg-romano
+                       rg-parmesan
+                       rg-vinegar
+                       rg-garlic
+                       rg-oregano
+                       rg-paprika
+                       rg-parsley))
+
+;; Dictionary of units
+(def dict-units (list
+                 rg-cup
+                 rg-teaspoon
+                 rg-tablespoon
+                 rg-ounce
+                 rg-pint
+                 rg-dash
+                 rg-clove
+                 rg-large
+                 rg-to-taste
+                 rg-for-dusting))
 
 ;; FILE READING
 ; Funct to read file line by line
@@ -184,20 +276,7 @@
   ; Definir rutas de recetas
   (def ruta ["recipes/Best Homemade Brownies-1.txt" 
              "recipes/Chimichurri Sauce.txt" 
-             "recipes/Fettuccine Alfredo.txt"
-             "recipes/Fettuccine Alfredo.txt"
-             "recipes/Fettuccine Alfredo.txt"
-             "recipes/Fettuccine Alfredo.txt"
-             "recipes/Fettuccine Alfredo.txt"
-             "recipes/Fettuccine Alfredo.txt"
-             "recipes/Fettuccine Alfredo.txt"
-             "recipes/Fettuccine Alfredo.txt"
-             "recipes/Fettuccine Alfredo.txt"
-             "recipes/Fettuccine Alfredo.txt"
-             "recipes/Fettuccine Alfredo.txt"
-             "recipes/Fettuccine Alfredo.txt"
-             "recipes/Fettuccine Alfredo.txt"
-             "recipes/Fettuccine Alfredo.txt"])
+            ])
 
   ; Ajustar número de threads para evitar particiones vacías
   (def n-threads-ajustado (min num-threads (count ruta)))
@@ -217,14 +296,30 @@
     (with-open [reader (io/reader file-path)]
         (doall (line-seq reader))
    )
-)      
+  )      
 
   ; Medir tiempo de ejecución y procesar en paralelo
   (println "\n-------TOTAL TIME")
-  (time 
+  ; Store execution time 
+  (def exec-time 
+    (time 
     (def lectura
       (apply concat ; Une los resultados de las sublistas
-             (pmap (fn [chunk] (doall (map read-file chunk))) data-chunks))))
+            ; Lee el archivo usando el file chunk
+            (pmap (fn [chunk] 
+                ;(doall (map read-file chunk))) 
+
+                ; Uses file path para hacer una lista de cada línea read de los chunk
+                (map 
+                    (fn [file-path] (map list (read-file file-path))) 
+                chunk))
+            data-chunks))))
+  )
+
+  (println exec-time)
+  
+  (println "\n-------LECTURA\n" lectura)
+
 
   ; Tokenización - cantidades, unidades de medida, numero de porciones y temperaturas
   ; Convertir unidades - tazas, teaspoons, cups, gramos, Fahrenheit a Celsius,  y viceversa
@@ -233,10 +328,13 @@
   ; Filtra:  el programa debe ser capaz de devolver solo las recetas que incluyan una palabra o frase determinada. Revisa la sección Entradas adicionales.
   ; Agrega texto con resultados (speed up y aceleración para el numero de hilos) 
 
-  (println "\nContenido de las recetas:")
-  (println lectura)
-  )
+  ;(println "\nContenido de las recetas:")
+  ;(println lectura)
+
   ; Retornar los datos para uso posterior
+
+)
+  
 
 ; Pasar input file y el número de threads para probarlo
 (main "options1.txt" 1)
