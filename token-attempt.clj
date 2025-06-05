@@ -41,15 +41,15 @@
 )
 
 ; Keeps the longest match
-;; (defn tokenize [input rg-dict]
-;;     ;(println "Using dictionary\n" dict-user)
-;;     ;(println "Reading: " input)
-;;     (cond
-;;         ; Base case input is empty
-;;         (zero? (count input) )
-;;     )
+(defn tokenize [input rg-dict]
+    ;(println "Using dictionary\n" dict-user)
+    ;(println "Reading: " input)
+    (cond
+        ; Base case input is empty
+        (zero? (count input) )
+    )
     
-;; )
+)
 
 
 ; Función principal que checa recetas con el número de opciones seleccionadas y threads especificados 
@@ -72,7 +72,7 @@
   ;(doall 
   ;  (def opt-tokenized (list (map (fn[current-line] (tokenize current-line dict-user)) opt-lines)))
   ;)
-;;   (let [opt-tokenized (doall (map (fn [current-line] (tokenize current-line dict-user)) opt-lines))]
+  (let [opt-tokenized (doall (map (fn [current-line] (tokenize current-line dict-user)) opt-lines))]
   (println "Tokenized options:\n" opt-tokenized))
   
 
