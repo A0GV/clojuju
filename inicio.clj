@@ -20,8 +20,7 @@
 (def rg-all (list "r-all" #"^all")) ; Keeps all recipes 
 (def rg-other (list "custom-filter" #"^[a-z]+"))
 
-;; Dictionary
-; Diccionario de tokens de configuraciones del usuario 
+;; Dictionary of tokens
 (def dict-user (list 
     rg-system
     rg-u-cup rg-u-tsp rg-u-met
