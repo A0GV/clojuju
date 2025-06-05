@@ -23,16 +23,6 @@
 (def rg-all (list "r-all" #"^all")) ; Keeps all recipes 
 (def rg-other (list "custom-filter" #"^[a-z]+"))
 
-
-
-;; FILE READING
-; Funct to read file line by line
-(defn read-file-lines [file-path]
-    (with-open [reader (io/reader file-path)]
-        (doall (line-seq reader))
-   )
-)
-
 ; Diccionario de tokens de configuraciones del usuario 
 (def dict-user (list 
     rg-system
@@ -47,6 +37,14 @@
     rg-filter
     rg-all rg-other
 ))
+
+;; FILE READING
+; Funct to read file line by line
+(defn read-file-lines [file-path]
+    (with-open [reader (io/reader file-path)]
+        (doall (line-seq reader))
+   )
+)
 
 ; TOKENIZACIÓN
 ; Finds all matches for item in regex given input text and corresponding dictionary
