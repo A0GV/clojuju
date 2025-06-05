@@ -83,52 +83,64 @@
 (def rg-to-taste (list "to-taste" #"\bto\s+taste\b"))
 (def rg-for-dusting (list "for-dusting" #"\bfor\s+dusting\b"))
 
+;(def rg-phrases (list "phrases" #"^[a-zA-Z0-9 ,\.\(\)]+"))
+; Other words 
+(def rg-serves (list "serves-amt" #"^(Serves\s*-\s*|Servings\s*-\s*)[0-9]+\b"))
+(def rg-temp-c (list "temp-C" #"^[0-9]+°C"))
+(def rg-temp-f (list "temp-C" #"^[0-9]+°C"))
+(def rg-pt (list "prep-t" #"^(Prep Time: [0-9]+\s*(mins | minutes | minutesmins))"))
+
+
+
 ;; Dictionary of numbers
-(def dict-numbers (list
+(def dict-recipe (list
                    rg-nums-int
                    rg-nums-frac
-                   rg-nums-mixed))
+                   rg-nums-mixed
+                
+                    rg-sugar
+                    rg-flour
+                    rg-cocoa
+                    rg-powdered-sugar
+                    rg-chocolate
+                    rg-salt
+                    rg-eggs
+                    rg-oil
+                    rg-water
+                    rg-vanilla
+                    rg-baking-powder
+                    rg-lemon-zest
+                    rg-lemon-juice
+                    rg-pasta
+                    rg-butter
+                    rg-cream
+                    rg-pepper
+                    rg-garlic-salt
+                    rg-romano
+                    rg-parmesan
+                    rg-vinegar
+                    rg-garlic
+                    rg-oregano
+                    rg-paprika
+                    rg-parsley
 
-;; Dictionary of ingredients
-(def dict-ingredients (list
-                       rg-sugar
-                       rg-flour
-                       rg-cocoa
-                       rg-powdered-sugar
-                       rg-chocolate
-                       rg-salt
-                       rg-eggs
-                       rg-oil
-                       rg-water
-                       rg-vanilla
-                       rg-baking-powder
-                       rg-lemon-zest
-                       rg-lemon-juice
-                       rg-pasta
-                       rg-butter
-                       rg-cream
-                       rg-pepper
-                       rg-garlic-salt
-                       rg-romano
-                       rg-parmesan
-                       rg-vinegar
-                       rg-garlic
-                       rg-oregano
-                       rg-paprika
-                       rg-parsley))
+                    rg-cup
+                    rg-teaspoon
+                    rg-tablespoon
+                    rg-ounce
+                    rg-pint
+                    rg-dash
+                    rg-clove
+                    rg-large
+                    rg-to-taste
+                    rg-for-dusting
 
-;; Dictionary of units
-(def dict-units (list
-                 rg-cup
-                 rg-teaspoon
-                 rg-tablespoon
-                 rg-ounce
-                 rg-pint
-                 rg-dash
-                 rg-clove
-                 rg-large
-                 rg-to-taste
-                 rg-for-dusting))
+                    ; Adding
+                    rg-serves
+                    rg-temp-c rg-temp-f
+                    rg-pt
+
+))
 
 ;; FILE READING
 ; Funct to read file line by line
@@ -274,51 +286,80 @@
   (println (str "Número de threads: " num-threads))
   
   ; Definir rutas de recetas
-  (def ruta ["recipes/Best Homemade Brownies-1.txt" 
-             "recipes/Chimichurri Sauce.txt" 
-            ])
+  ;(def ruta ["recipes/Best Homemade Brownies-1.txt" 
+  ;           "recipes/Chimichurri Sauce.txt" 
+  ;           "recipes/Lemon Cake-1.txt"
+  ;           "recipes/Fettuccine Alfredo.txt"
+  ;           "recipes/Pan-Seared Steak with Garlic Butter.txt"])
+  (def ruta ["recipes/Best Homemade Brownies-1.txt"])
 
   ; Ajustar número de threads para evitar particiones vacías
   (def n-threads-ajustado (min num-threads (count ruta)))
-  (def chunk-size (int (/ (count ruta) n-threads-ajustado))) ; Tamaño de partición basado en número de threads
+  (def chunk-size (max 1 (int (/ (count ruta) n-threads-ajustado))))
    
   (def data-chunks 
-    (partition-all chunk-size ruta)) ; Divide la lista de archivos en sublistas según el tamaño de partición
+    (partition-all chunk-size ruta))
 
-  ;; (println "\nData chunks:")
-  ;; (println data-chunks)
+  ; Función para procesar UNA receta completa (leer + tokenizar)
+  (defn process-recipe [file-path]
+    (let [; Lee el archivo línea por línea
+          raw-lines (with-open [reader (io/reader file-path)]
+                      (doall (line-seq reader)))
+          ; Convierte cada línea en una lista (como options)
+          recipe-lines (map list raw-lines)
+          ; Tokeniza cada línea
+          tokenized-lines (doall 
+                            (map (fn [current-line] 
+                                   (if (not (empty? (str/trim (first current-line))))
+                                     ; Combina todos los diccionarios para tokenizar todo
+                                     (tokenize (first current-line) dict-recipe)
+                                     '()))
+                                 recipe-lines))]
+      ; Retorna una lista con: [nombre-archivo, líneas-originales, líneas-tokenizadas]
+      (list file-path recipe-lines tokenized-lines)))
 
-  ;; (println "\nVersión paralela de lectura con partición")
-
-  ; Función para leer archivos (simula un proceso lento)
-  (defn read-file [file-path]
-    ;; (Thread/sleep 1000) ;;Lo deje comentario pero sirve comom para checar si si lo hace mas rapido
-    (with-open [reader (io/reader file-path)]
-        (doall (line-seq reader))
-   )
-  )      
+  ; Función para procesar un chunk de recetas
+  (defn process-chunk [chunk]
+    (map process-recipe chunk))
 
   ; Medir tiempo de ejecución y procesar en paralelo
   (println "\n-------TOTAL TIME")
-  ; Store execution time 
   (def exec-time 
     (time 
-    (def lectura
-      (apply concat ; Une los resultados de las sublistas
-            ; Lee el archivo usando el file chunk
-            (pmap (fn [chunk] 
-                ;(doall (map read-file chunk))) 
-
-                ; Uses file path para hacer una lista de cada línea read de los chunk
-                (map 
-                    (fn [file-path] (map list (read-file file-path))) 
-                chunk))
-            data-chunks))))
-  )
+      (def recipes-processed
+        (apply concat ; Aplana los chunks pero mantiene cada receta separada
+               (pmap process-chunk data-chunks)))))
 
   (println exec-time)
+
+  ; Mostrar resultados por receta
+  (println "\n-------RECIPES PROCESSED")
+  (doseq [recipe recipes-processed]
+    (let [file-name (first recipe)
+          original-lines (second recipe)
+          tokenized-lines (nth recipe 2)]
+      
+      (println (str "\n--- RECIPE: " file-name " ---"))
+      (println "Original lines:")
+      (doseq [line original-lines]
+        (println (str "  " line)))
+      
+      (println "\nTokenized lines:")
+      (doseq [tokenized-line tokenized-lines]
+        (if (not (empty? tokenized-line))
+          (println (str "  " tokenized-line))))
+      
+      ; Aquí puedes agregar más procesamiento específico por receta
+      ; Por ejemplo, identificar la sección de ingredientes:
+      (println "\nIngredient lines found:")
+      (doseq [tokenized-line tokenized-lines]
+        (if (some (fn [token] 
+                    (and (not (nil? token))
+                         (str/starts-with? (str (first token)) "ingredient"))) 
+                  tokenized-line)
+          (println (str "  INGREDIENT: " tokenized-line))))))
   
-  (println "\n-------LECTURA\n" lectura)
+  
 
 
   ; Tokenización - cantidades, unidades de medida, numero de porciones y temperaturas
@@ -337,7 +378,7 @@
   
 
 ; Pasar input file y el número de threads para probarlo
-(main "options1.txt" 1)
+;(main "options1.txt" 1)
 ;(main "options1.txt" 6)
 ;(main "options1.txt" 10)
 
