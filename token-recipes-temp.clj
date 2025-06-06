@@ -394,7 +394,7 @@
             user-temp-units (user-celsius-check user-options)
         ]
         
-        (println "Processing recipe:" recipe-name)
+        (println "Processing recipe:" recipe-name "\n")
 
         ; Process all tokenized lines
         (let [
@@ -411,7 +411,7 @@
 ; Analyze all recipes and apply manipulations
 (defn analyze-recipes [processed-recipes user-tokens]
     "Analyzes and manipulates all processed recipes based on user preferences"
-    (println "\n=== RECIPE MANIPULATION ===")
+    (println "\n------- RECIPE MANIPULATION -------")
     
     ; Apply manipulations to all recipes
     (let [manipulated-recipes (doall (map (fn [recipe]
@@ -419,11 +419,11 @@
                                    processed-recipes))
          ]
         
-        (println "\n=== MANIPULATION COMPLETE ===")
         (println "Processed" (count manipulated-recipes) "recipes")
         
         ; Return the manipulated recipes
-        manipulated-recipes)
+        manipulated-recipes
+    )
 )
 
 ; Función principal que checa recetas con el número de opciones seleccionadas y threads especificados 
