@@ -91,6 +91,7 @@
 (def rg-temp-f (list "temp-C" #"^[0-9]+°C"))
 ;(def rg-pt (list "prep-t" #"^(?:Prep Time\:\s*[0-9]+\s*(mins|minutes))"))
 (def rg-step-num (list "step-num" #"^[0-9]+\."))
+(def rg-fract-in (list "fract-in" #"[0-9]+/[0-9]+\""))
 
 
 
@@ -142,6 +143,7 @@
                     rg-temp-c rg-temp-f
                     ;rg-pt
                     rg-step-num
+                    rg-fract-in
 
 ))
 
@@ -269,13 +271,17 @@
     )
 )
 
-; Read and tokenize recipe
+;; RECIPE HANDLING
+; Recieves the chunk (aka the list of file paths) 
 (defn process-recipe [file-path]
-(let [
+    (let [
         ; Read file lines w reader
         raw-lines (with-open [reader (io/reader file-path)] (doall (line-seq reader)))
         ; Converts lines to list to have same format as options
         recipe-lines (map list raw-lines)
+
+        (println "\n-------RECIPE LINES\n" recipe-lines)
+
         ; Tokenizar las líneas
         tokenized-lines (map (fn [current-line] 
                             ; Proccesses line recipe if it is not empty 
@@ -283,116 +289,134 @@
                                 (tokenize (first current-line) dict-recipe) ; Tokenize call
                                 '() ; List is empty
                             )
-                        )
-                            recipe-lines)
-    ]
-    ; Returns list w file name, original lines just in case, and tokenized lines 
-    (list file-path recipe-lines tokenized-lines)))
+                        ) recipe-lines)
+        ]
+        ; Returns list w file name, original lines just in case, and tokenized lines 
+        (println "\n\n\n")
+        (list file-path recipe-lines tokenized-lines)
+    )
+)
+
+; Takes in list of recipes and calls process-recipe
+(defn process-chunk [chunk]
+    (println "Processing: " chunk)
+    (map process-recipe chunk)
+    
+)
 
 ; Función principal que checa recetas con el número de opciones seleccionadas y threads especificados 
 (defn main [options-file num-threads]
-  ; Leer options file y guardar preferencias del usuario 
-  (def options-path (str "options/" options-file))
-  (println "\n-------FILE PATH: " options-path)
+    ; Leer options file y guardar preferencias del usuario 
+    (def options-path (str "options/" options-file))
+    (println "\n-------FILE PATH: " options-path)
 
-  (def file-lines (read-file-lines options-path))
-  (println "\n-------USER PREFERENCES\n" file-lines)
+    (def file-lines (read-file-lines options-path))
+    (println "\n-------USER PREFERENCES\n" file-lines)
 
-  (println "\n-------LINE BY LINE")
-  ;(def opt-lines (list (map (fn [line] (println line)) file-lines)) )
-  (def opt-lines (map list file-lines))
-  (println opt-lines)
+    (println "\n-------LINE BY LINE")
+    ;(def opt-lines (list (map (fn [line] (println line)) file-lines)) )
+    (def opt-lines (map list file-lines))
+    (println opt-lines)
 
-  (def opt-tokenized
-    (doall 
-        (map (fn [current-line] 
-            (tokenize (first current-line) dict-user)) 
-        opt-lines)
+    (def opt-tokenized
+        (doall 
+            (map (fn [current-line] 
+                (tokenize (first current-line) dict-user)) 
+            opt-lines)
+        )
     )
-  )
 
-  (println "\n-------TOKENIZED")
-  (println opt-tokenized)
+    (println "\n-------TOKENIZED")
+    (println opt-tokenized)
 
-  ; Leer recetas
-  (println "\n-------READ RECIPES")
-  (println (str "Procesando con archivo de opciones: " options-file))
-  (println (str "Número de threads: " num-threads))
+    ; Leer recetas
+    (println "\n-------READ RECIPES")
+    (println (str "Procesando con archivo de opciones: " options-file))
+    (println (str "Número de threads: " num-threads))
   
-  ; Definir rutas de recetas
-  ;(def ruta ["recipes/Best Homemade Brownies-1.txt" 
-  ;           "recipes/Chimichurri Sauce.txt" 
-  ;           "recipes/Lemon Cake-1.txt"
-  ;           "recipes/Fettuccine Alfredo.txt"
-  ;           "recipes/Pan-Seared Steak with Garlic Butter.txt"])
-  (def ruta ["recipes/Best Homemade Brownies-1.txt"
+    ; Definir rutas de recetas
+    ;(def ruta ["recipes/Best Homemade Brownies-1.txt" 
+    ;           "recipes/Chimichurri Sauce.txt" 
+    ;           "recipes/Lemon Cake-1.txt"
+    ;           "recipes/Fettuccine Alfredo.txt"
+    ;           "recipes/Pan-Seared Steak with Garlic Butter.txt"])
+    (def ruta ["recipes/Best Homemade Brownies-1.txt"
                 "recipes/Chimichurri Sauce.txt" 
 
-  ])
+    ])
 
-  ; Ajustar número de threads para evitar particiones vacías
-  (def n-threads-ajustado (min num-threads (count ruta)))
-  (def chunk-size (max 1 (int (/ (count ruta) n-threads-ajustado))))
-   
-  (def data-chunks 
+    ; Ajustar número de threads para evitar particiones vacías
+    (def n-threads-ajustado (min num-threads (count ruta)))
+    (def chunk-size (max 1 (int (/ (count ruta) n-threads-ajustado))))
+
+    ; Divides the recipes into chunks containing file names
+    (def data-chunks 
     (partition-all chunk-size ruta))
 
-  ; Función para procesar un chunk de recetas
-  (defn process-chunk [chunk]
-    (map process-recipe chunk))
+    (println "CHUNKS: " data-chunks) ; Stores list
+    ;; 2 recipes 2 threads((recipes/Best Homemade Brownies-1.txt) (recipes/Chimichurri Sauce.txt))
+    ;; 2 recipes 1 thread ((recipes/Best Homemade Brownies-1.txt recipes/Chimichurri Sauce.txt))
 
-  ; Medir tiempo de ejecución y procesar en paralelo
-  (println "\n-------TOTAL TIME")
-  (def exec-time 
-    (time 
-      (def recipes-processed
-        (apply concat ; Aplana los chunks pero mantiene cada receta separada
-               (pmap process-chunk data-chunks)))))
+    ; Medir tiempo de ejecución y procesar en paralelo
+    (println "\n-------TOTAL TIME")
+    ; Guarda tiempo de ejecución
+    (def exec-time 
+        (time 
+            (def recipes-processed
+                (apply concat ; Aplana chunks pero keeps recipes separated
+                    ; Sends the chunks of recipes (list of recipes) to proccess them
+                    (pmap process-chunk data-chunks)
+                )
+            )
+        )
+    )
 
-  (println exec-time)
+    (println exec-time)
 
-  ; Mostrar resultados por receta
-  (println "\n-------RECIPES PROCESSED")
-  (doseq [recipe recipes-processed]
-    (let [file-name (first recipe)
-          original-lines (second recipe)
-          tokenized-lines (nth recipe 2)]
-      
-      ; Prints out the recipe 
-      (println (str "\n--- RECIPE: " file-name " ---"))
-      (println "Original lines:")
-      (doseq [line original-lines]
-        (println (str "  " line)))
-      
-      (println "\nTokenized lines:")
-      (doseq [tokenized-line tokenized-lines]
-        (if (not (empty? tokenized-line))
-          (println (str "  " tokenized-line))))
-      
-      ; Aquí puedes agregar más procesamiento específico por receta
-      ; Por ejemplo, identificar la sección de ingredientes:
-      (println "\nIngredient lines found:")
-      (doseq [tokenized-line tokenized-lines]
-        (if (some (fn [token] 
-                    (and (not (nil? token))
-                         (str/starts-with? (str (first token)) "ingredient"))) 
-                  tokenized-line)
-          (println (str "  INGREDIENT: " tokenized-line))))))
-  
-  
+    ; Mostrar resultados por receta
+    (println "\n-------RECIPES PROCESSED")
+    ;(println recipes-processed)
+
+    ;(doseq [recipe recipes-processed]
+    ;  (let [file-name (first recipe)
+    ;        original-lines (second recipe)
+    ;        tokenized-lines (nth recipe 2)]
+        
+        ; Prints out the recipe 
+    ;     (println (str "\n--- RECIPE: " file-name " ---"))
+    ;     (println "Original lines:")
+    ;     (doseq [line original-lines]
+    ;       (println (str "  " line)))
+        
+    ;    (println "\nTokenized lines:")
+    ;    (doseq [tokenized-line tokenized-lines]
+    ;      (if (not (empty? tokenized-line))
+    ;        (println (str "  " tokenized-line))))
+        
+        ; Aquí puedes agregar más procesamiento específico por receta
+        ; Por ejemplo, identificar la sección de ingredientes:
+    ;    (println "\nIngredient lines found:")
+    ;    (doseq [tokenized-line tokenized-lines]
+    ;      (if (some (fn [token] 
+    ;                 (and (not (nil? token))
+    ;                       (str/starts-with? (str (first token)) "ingredient"))) 
+    ;                tokenized-line)
+    ;        (println (str "  INGREDIENT: " tokenized-line))))))
 
 
-  ; Tokenización - cantidades, unidades de medida, numero de porciones y temperaturas
-  ; Convertir unidades - tazas, teaspoons, cups, gramos, Fahrenheit a Celsius,  y viceversa
-  ; Calorias totales y por porcion (base de gramos)
-  ; Escala arriba o abajo. Tu programa debe calcular la cantidad de ingredientes necesarios para escalar la receta a un numero de porciones determinado. ACTUALIZAR LO ANTERIOR 
-  ; Filtra:  el programa debe ser capaz de devolver solo las recetas que incluyan una palabra o frase determinada. Revisa la sección Entradas adicionales.
-  ; Agrega texto con resultados (speed up y aceleración para el numero de hilos) 
 
-  ;(println "\nContenido de las recetas:")
-  ;(println lectura)
 
-  ; Retornar los datos para uso posterior
+    ; Tokenización - cantidades, unidades de medida, numero de porciones y temperaturas
+    ; Convertir unidades - tazas, teaspoons, cups, gramos, Fahrenheit a Celsius,  y viceversa
+    ; Calorias totales y por porcion (base de gramos)
+    ; Escala arriba o abajo. Tu programa debe calcular la cantidad de ingredientes necesarios para escalar la receta a un numero de porciones determinado. ACTUALIZAR LO ANTERIOR 
+    ; Filtra:  el programa debe ser capaz de devolver solo las recetas que incluyan una palabra o frase determinada. Revisa la sección Entradas adicionales.
+    ; Agrega texto con resultados (speed up y aceleración para el numero de hilos) 
+
+    ;(println "\nContenido de las recetas:")
+    ;(println lectura)
+
+    ; Retornar los datos para uso posterior
 
 )
   
@@ -402,4 +426,4 @@
 ;(main "options1.txt" 6)
 ;(main "options1.txt" 10)
 
-(main "options2.txt" 1)
+(main "options2.txt" 2)
