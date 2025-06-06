@@ -46,10 +46,10 @@
 (def rg-nums-mixed (list "number-mixed" #"^[0-9]+\s+[0-9]+/[0-9]+\b"))
 
 ; Regex para ingredientes (case sensitive)
-(def rg-sugar (list "ingredient-sugar" #"\b(?:granulated\s+)?sugar\b"))
-(def rg-flour (list "ingredient-flour" #"\b(?:all-purpose\s+|almond\s+)?flour\b"))
-(def rg-cocoa (list "ingredient-cocoa" #"\bcocoa\s+powder\b"))
-(def rg-powdered-sugar (list "ingredient-powdered-sugar" #"\bpowdered\s+sugar\b"))
+(def rg-sugar (list "ingredient-sugar" #"^\b(?:granulated\s+)?sugar\b"))
+(def rg-flour (list "ingredient-flour" #"^\b(?:all-purpose\s+|almond\s+)?flour\b"))
+(def rg-cocoa (list "ingredient-cocoa" #"^\bcocoa\s+powder\b"))
+(def rg-powdered-sugar (list "ingredient-powdered-sugar" #"^\bpowdered\s+sugar\b"))
 (def rg-chocolate (list "ingredient-chocolate" #"\bdark\s+chocolate\s+chips\b"))
 (def rg-salt (list "ingredient-salt" #"\b(?:sea\s+|kosher\s+)?salt\b"))
 (def rg-eggs (list "ingredient-eggs" #"\beggs?\b"))
@@ -85,10 +85,11 @@
 
 ;(def rg-phrases (list "phrases" #"^[a-zA-Z0-9 ,\.\(\)]+"))
 ; Other words 
-(def rg-serves (list "serves-amt" #"^(Serves\s*-\s*|Servings\s*-\s*)[0-9]+\b"))
+(def rg-serves (list "serves-amt" #"^(?:Serves\s*-\s*|Servings\s*-\s*)[0-9]+\b"))
+;(def rg-serves (list "serves-amt" #"^(Serves\s*-\s*|Servings\s*-\s*)[0-9]+\b"))
 (def rg-temp-c (list "temp-C" #"^[0-9]+°C"))
 (def rg-temp-f (list "temp-C" #"^[0-9]+°C"))
-(def rg-pt (list "prep-t" #"^(Prep Time: [0-9]+\s*(mins | minutes | minutesmins))"))
+(def rg-pt (list "prep-t" #"^(?:Prep Time\: [0-9]+\s*(mins | minutes))"))
 
 
 
@@ -204,7 +205,7 @@
     (let [all-found-matches (all-matches input-item rg-dict)]
         (cond
             ; Did not find a match, returns an unregognized for symbol
-            (empty? all-found-matches) (list "No reconocido" (subs input-item 0 1)) 
+            (empty? all-found-matches) (list "NA" (subs input-item 0 1)) 
 
             ; Only one match, just returns that one 
             (= 1 (count all-found-matches)) (first all-found-matches)
@@ -236,14 +237,26 @@
     :else 
         ; List of token and matched substring 
         (let [
+            input-trim (str/trim input) ; Para hacer llamadas, ya quita los empty spaces
+
             ; Head de variables 
-            type-txtmatch (longest-match (str/trim input) rg-dict)
+            type-txtmatch (longest-match input-trim rg-dict)
             ; Builds the substring
             extracted-txt (second type-txtmatch) ; Finds the token text
             length (count extracted-txt) ; Counts how long the token text is
 
+            ; Finds pos of match starting
+            pos-match-start (.indexOf input-trim extracted-txt)
+
             ; For recursive to start at next element (excluding whitespace)
-            rest-input (subs (str/trim input) length)
+            ;rest-input (subs input-trim length)
+            rest-input (if (= "NA" (first type-txtmatch))
+                ; NA case: longest-match already took 1 char, so skip 1 char
+                (str/trim (subs input-trim 1))
+                ; Match found: skip past the entire matched text
+                (str/trim (subs input-trim (+ pos-match-start length)))
+            )
+
             ]
             ; Ahora el body para build list 
             (cons 
