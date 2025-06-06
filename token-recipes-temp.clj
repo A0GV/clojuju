@@ -303,103 +303,104 @@
     (map process-recipe chunk)
 )
 
-; Returns temp in celcius w corrected token name: (f-temp - 32) / (9 / 5)
-(defn f-to-c [f-temp]
-    (def c 
-        (/ (- f-temp 32) (/ 9 5))
-    )
-    (list "temp-C" (str c "°F"))
-)
-
-; Recieves an isolated recipe and user configurations 
-(defn manipulate-recipe [recipe user-options]
-    (let 
-        [
-            recipe-name (first recipe) ; Gets recipe name w .txt
-            original-lines (second recipe) ; Original lines sotre just in case
-            tokenized-lines (nth recipe 2) ; Gets the tokenized line results
-
-        ]
-
-        (println "Correcting: " recipe-name) 
-        ; Checks if user options specify °C and file contains °F, corrects 
-        (def recipe-corrected-temp 
-            (map 
-                (fn [token] 
-                    (if (and (not (nil? token)) 
-                        ; Temp is currently farenheit and user specified they want celcius
-                        (and (= (first token) "temp-F") (and (first (nth user-options 2)) (t-cel))))
-                        )
-
-                        ; True, calls function to replace that token w val in celcius 
-                        (append (f-to-c (first token)) )
-
-                        ; Else just appends token (not temp or already correct)
-                        (append token)
-
-                )
-            tokenized-lines)
-        )
-
-        (println recipe-corrected-temp)
-        
-        ; If recipe contains a temp of F, replaces that token w °C equivalent
-
-        ; Return the tokenized recipe with corrected units 
-        (println "Returning corrections of: " recipe-name)
-        recipe-corrected-temp
+;; SUB-FUNCTIONS FOR RECIPE CONVERSION
+; Extrae val numerico de temp given  
+(defn extract-temp-value [temp-string]
+    (let [numeric-part (re-find #"\d+" temp-string)]
+        ; Returns num if it did match, 0 if it did not find the number
+        (if numeric-part (Integer/parseInt numeric-part) 0)
     )
 )
 
-; Analyze recipes after processing (PURE FUNCTIONAL)
-(defn analyze-recipe [processed-recipes user-tokens]
-    (println "\n=== MANIPULATE  ===")
-    
-    ; Isolates recipe 
+; Converts far to cel and returns it as a token C = (F - 32) / (9 / 5)
+(defn f-to-c [f-temp-string]
     (let [
-        ; Stores the list of the recipe rewritten
-        recipe-rewritten (map (fn [recipe] (manipulate-recipe recipe           user-tokens)) processed-recipes)
+            ; Calls helper funct to convert farenheit 
+            f-value (extract-temp-value f-temp-string)
+            c-value (/ (* (- f-value 32) 5) 9.0) ; Plugs into eq
+        ]
+        (list "temp-C" (str c-value "°C")))
+)
 
+; Converts far to cel and returns it as a token F = (C * (9 / 5)) +32
+(defn c-to-f [c-temp-string]
+    (let [
+            ; Calls helper funct to convert farenheit 
+            c-value (extract-temp-value c-temp-string)
+            f-value (+ (* c-value (/ 9 5)) 32) ; Plugs into eq
+        ]
+        (list "temp-F" (str f-value "°F")))
+)
+
+;; COMPARISON TOKENS AGAINST USER PREFERENCES
+; Check user wants cel
+(defn user-celsius-check [user-tokens]
+    ; Some token among the options txt is t-cel
+    (some 
+        ; Checks token is not null and that the first val is t-cel
+        (fn [token-line] (some (fn [token] (and (not (nil? token)) (= (first token) "t-cel"))) token-line))
+    user-tokens)
+)
+
+; Processes line using result of whether user wants celcius
+(defn process-token-line [token-line user-temp-units]
+    (map (fn [token]
+            ; Recipe token is currently set to F and user wants C
+            (cond 
+                ; Checks recipe F, user C
+                (and (not (nil? token)) (not (empty? token))(= (first token) "temp-F") user-temp-units)
+                    ; Need to convert F to C, calls funct
+                    (f-to-c (second token))
+                
+                ; Checks recipe C, user F
+                ((and (not (nil? token)) (not (empty? token))(= (first token) "temp-C") (not user-temp-units)))
+                    (c-to-f (second token))
+               
+               ; Else it can just stay how it is
+               :else token
+            )
+    token-line))
+)
+
+; Main function to manipulate one recipe at a time based on user preferences
+(defn manipulate-recipe [recipe user-options]
+    (let [
+            recipe-name (first recipe)
+            original-lines (second recipe)
+            tokenized-lines (nth recipe 2)
+            
+            ; Checks if user wants C
+            user-temp-units (user-celsius-check user-options)
         ]
         
-        recipe-rewritten
+        (println "Processing recipe:" recipe-name)
+
+        ; Process all tokenized lines
+        (let [
+            corrected-temp (doall (map (fn [token-line] (process-token-line token-line user-temp-units)) tokenized-lines))
+            ]
+            
+            ; Return updated recipe structure
+            (list recipe-name original-lines corrected-temp)
+        )
     )
 )
 
-; Takes in list of recipes and calls process-recipe
-(defn processa-chunk [chunk]
-    (println "Processing: " chunk)
-    ;(map process-recipe chunk)
-    (let 
-        [processed-chunks (map process-recipe chunk)]
-
-        ; Body 
-        ;(println "\n-------PROCESSED CHUNKS\n" processed-chunks)
-        ;(println "\n---Recipe name " (first (first processed-chunks)))
-
-        (println "\n--Recipe names: ")
-        (def recipe-names (map (fn [x] (first x) ) processed-chunks) ) ; Store names of recipes
-        (print recipe-names)
-
-        (println "\n\n\n--Recipe content")
-        ;(doall (map (fn [x] (println (second x) "\n\n")) processed-chunks))
-        (println "\n\n")
-        ; Creates list w the recipe content
-        (def recipe-content 
-            ;(apply concat
-                (map (fn [x] (second x)) processed-chunks)
-            ;)
-        )
-
-        (println (first recipe-content)) ; Format outer wraps the whole chunks, layer 2 (( )) the recipe and then ind lines
-
-        ; Now the tokens i guess 
-        ;processed-chunks  ; Return the result
-
-        (doall (map (fn [x] (println (nth x 2) "\n\n")) processed-chunks))
-    )
-    ;(println "\n-------TOKENIZED CHUNKS\n" tokenized-chunks)
+; Analyze all recipes and apply manipulations
+(defn analyze-recipes [processed-recipes user-tokens]
+    "Analyzes and manipulates all processed recipes based on user preferences"
+    (println "\n=== RECIPE MANIPULATION ===")
     
+    ; Apply manipulations to all recipes
+    (let [manipulated-recipes (doall (map (fn [recipe]
+                                     (manipulate-recipe recipe user-tokens))
+                                   processed-recipes))]
+        
+        (println "\n=== MANIPULATION COMPLETE ===")
+        (println "Processed" (count manipulated-recipes) "recipes")
+        
+        ; Return the manipulated recipes
+        manipulated-recipes)
 )
 
 ; Función principal que checa recetas con el número de opciones seleccionadas y threads especificados 
