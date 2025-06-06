@@ -161,6 +161,13 @@
  (apply str (map (fn [x] (str (resultado x) "<br/>")) tokenized))
 )
 
+(def header
+    "<link rel='stylesheet' ref='text/css' href='../estilos.css'/>
+    <link rel='preconnect' href='https://fonts.googleapis.com'>
+    <link rel='preconnect' href='https://fonts.gstatic.com' crossorigin>
+    <link href='https://fonts.googleapis.com/css2?family=Comic+Neue:ital,wght@0,300;0,400;0,700;1,300;1,400;1,700&display=swap' rel='stylesheet'>
+    <h1>los 3 mosqueteros recetas</h1>"
+)
 
 ; Función principal que checa recetas con el número de opciones seleccionadas y threads especificados 
 (defn main [options-file num-threads]
@@ -189,7 +196,11 @@
   
   (println "\n-------HTML")
   (def nombre (subs options-file 0 (- (count options-file) 4)))
-  (spit (str "htmls/" nombre ".html") (html opt-tokenized))
+
+  ; HTML con 
+  (def htmlcompleto (str header "<div class='options'>"(html opt-tokenized)"</div>"))
+
+  (spit (str "htmls/" nombre ".html") htmlcompleto)
 
   ; Leer recetas
   (println "\n-------READ RECIPES")
