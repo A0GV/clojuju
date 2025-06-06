@@ -280,7 +280,7 @@
         ; Converts lines to list to have same format as options
         recipe-lines (map list raw-lines)
 
-        (println "\n-------RECIPE LINES\n" recipe-lines)
+        ; cant have prints in lets (println "\n-------RECIPE LINES\n" recipe-lines)
 
         ; Tokenizar las líneas
         tokenized-lines (map (fn [current-line] 
@@ -300,7 +300,20 @@
 ; Takes in list of recipes and calls process-recipe
 (defn process-chunk [chunk]
     (println "Processing: " chunk)
-    (map process-recipe chunk)
+    ;(map process-recipe chunk)
+    (let 
+        [processed-chunks (map process-recipe chunk)]
+
+        ; Body 
+        ;(println "\n-------PROCESSED CHUNKS\n" processed-chunks)
+        ;(println "\n---Recipe name " (first (first processed-chunks)))
+
+        (map (fn [x] (print (first x))) processed-chunks)
+
+        (println "\n--")
+        ;processed-chunks  ; Return the result
+    )
+    ;(println "\n-------TOKENIZED CHUNKS\n" tokenized-chunks)
     
 )
 
@@ -373,36 +386,6 @@
 
     (println exec-time)
 
-    ; Mostrar resultados por receta
-    (println "\n-------RECIPES PROCESSED")
-    ;(println recipes-processed)
-
-    ;(doseq [recipe recipes-processed]
-    ;  (let [file-name (first recipe)
-    ;        original-lines (second recipe)
-    ;        tokenized-lines (nth recipe 2)]
-        
-        ; Prints out the recipe 
-    ;     (println (str "\n--- RECIPE: " file-name " ---"))
-    ;     (println "Original lines:")
-    ;     (doseq [line original-lines]
-    ;       (println (str "  " line)))
-        
-    ;    (println "\nTokenized lines:")
-    ;    (doseq [tokenized-line tokenized-lines]
-    ;      (if (not (empty? tokenized-line))
-    ;        (println (str "  " tokenized-line))))
-        
-        ; Aquí puedes agregar más procesamiento específico por receta
-        ; Por ejemplo, identificar la sección de ingredientes:
-    ;    (println "\nIngredient lines found:")
-    ;    (doseq [tokenized-line tokenized-lines]
-    ;      (if (some (fn [token] 
-    ;                 (and (not (nil? token))
-    ;                       (str/starts-with? (str (first token)) "ingredient"))) 
-    ;                tokenized-line)
-    ;        (println (str "  INGREDIENT: " tokenized-line))))))
-
 
 
 
@@ -426,4 +409,4 @@
 ;(main "options1.txt" 6)
 ;(main "options1.txt" 10)
 
-(main "options2.txt" 2)
+(main "options2.txt" 1)
