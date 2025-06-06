@@ -348,7 +348,7 @@
             ; Recipe token is currently set to F and user wants C
             (cond 
                 ; Checks recipe F, user C
-                ((and (not (nil? token)) (not (empty? token))(= (first token) "temp-F") user-temp-units))
+                (and (not (nil? token)) (not (empty? token))(= (first token) "temp-F") user-temp-units)
                     ; Need to convert F to C, calls funct
                     (f-to-c (second token))
                 
@@ -377,7 +377,7 @@
 
         ; Process all tokenized lines
         (let [
-            corrected-temp (map (fn [token-line] (process-token-line token-line user-temp-units)) tokenized-lines)
+            corrected-temp (doall (map (fn [token-line] (process-token-line token-line user-temp-units)) tokenized-lines))
             ]
             
             ; Return updated recipe structure
@@ -392,9 +392,9 @@
     (println "\n=== RECIPE MANIPULATION ===")
     
     ; Apply manipulations to all recipes
-    (let [manipulated-recipes (map (fn [recipe]
+    (let [manipulated-recipes (doall (map (fn [recipe]
                                      (manipulate-recipe recipe user-tokens))
-                                   processed-recipes)]
+                                   processed-recipes))]
         
         (println "\n=== MANIPULATION COMPLETE ===")
         (println "Processed" (count manipulated-recipes) "recipes")
