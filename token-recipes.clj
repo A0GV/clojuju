@@ -89,7 +89,8 @@
 ;(def rg-serves (list "serves-amt" #"^(Serves\s*-\s*|Servings\s*-\s*)[0-9]+\b"))
 (def rg-temp-c (list "temp-C" #"^[0-9]+°C"))
 (def rg-temp-f (list "temp-C" #"^[0-9]+°C"))
-(def rg-pt (list "prep-t" #"^(?:Prep Time\:\s*[0-9]+\s*(mins|minutes))"))
+;(def rg-pt (list "prep-t" #"^(?:Prep Time\:\s*[0-9]+\s*(mins|minutes))"))
+(def rg-step-num (list "step-num" #"^[0-9]+\."))
 
 
 
@@ -140,6 +141,7 @@
                     rg-serves
                     rg-temp-c rg-temp-f
                     ;rg-pt
+                    rg-step-num
 
 ))
 
@@ -267,6 +269,25 @@
     )
 )
 
+; Read and tokenize recipe
+(defn process-recipe [file-path]
+(let [
+        ; Read file lines w reader
+        raw-lines (with-open [reader (io/reader file-path)] (doall (line-seq reader)))
+        ; Converts lines to list to have same format as options
+        recipe-lines (map list raw-lines)
+        ; Tokenizar las líneas
+        tokenized-lines (map (fn [current-line] 
+                            ; Proccesses line recipe if it is not empty 
+                            (if (not (empty? (str/trim (first current-line))))
+                                (tokenize (first current-line) dict-recipe) ; Tokenize call
+                                '() ; List is empty
+                            )
+                        )
+                            recipe-lines)
+    ]
+    ; Returns list w file name, original lines just in case, and tokenized lines 
+    (list file-path recipe-lines tokenized-lines)))
 
 ; Función principal que checa recetas con el número de opciones seleccionadas y threads especificados 
 (defn main [options-file num-threads]
@@ -315,24 +336,6 @@
    
   (def data-chunks 
     (partition-all chunk-size ruta))
-
-  ; Función para procesar UNA receta completa (leer + tokenizar)
-  (defn process-recipe [file-path]
-    (let [; Lee el archivo línea por línea
-          raw-lines (with-open [reader (io/reader file-path)]
-                      (doall (line-seq reader)))
-          ; Convierte cada línea en una lista (como options)
-          recipe-lines (map list raw-lines)
-          ; Tokeniza cada línea
-          tokenized-lines (doall 
-                            (map (fn [current-line] 
-                                   (if (not (empty? (str/trim (first current-line))))
-                                     ; Combina todos los diccionarios para tokenizar todo
-                                     (tokenize (first current-line) dict-recipe)
-                                     '()))
-                                 recipe-lines))]
-      ; Retorna una lista con: [nombre-archivo, líneas-originales, líneas-tokenizadas]
-      (list file-path recipe-lines tokenized-lines)))
 
   ; Función para procesar un chunk de recetas
   (defn process-chunk [chunk]
