@@ -89,7 +89,7 @@
 ;(def rg-serves (list "serves-amt" #"^(Serves\s*-\s*|Servings\s*-\s*)[0-9]+\b"))
 (def rg-temp-c (list "temp-C" #"^[0-9]+°C"))
 (def rg-temp-f (list "temp-C" #"^[0-9]+°C"))
-(def rg-pt (list "prep-t" #"^(?:Prep Time\: [0-9]+\s*(mins | minutes))"))
+(def rg-pt (list "prep-t" #"^(?:Prep Time\:\s*[0-9]+\s*(mins|minutes))"))
 
 
 
@@ -139,7 +139,7 @@
                     ; Adding
                     rg-serves
                     rg-temp-c rg-temp-f
-                    rg-pt
+                    ;rg-pt
 
 ))
 
@@ -304,7 +304,10 @@
   ;           "recipes/Lemon Cake-1.txt"
   ;           "recipes/Fettuccine Alfredo.txt"
   ;           "recipes/Pan-Seared Steak with Garlic Butter.txt"])
-  (def ruta ["recipes/Best Homemade Brownies-1.txt"])
+  (def ruta ["recipes/Best Homemade Brownies-1.txt"
+                "recipes/Chimichurri Sauce.txt" 
+
+  ])
 
   ; Ajustar número de threads para evitar particiones vacías
   (def n-threads-ajustado (min num-threads (count ruta)))
@@ -352,6 +355,7 @@
           original-lines (second recipe)
           tokenized-lines (nth recipe 2)]
       
+      ; Prints out the recipe 
       (println (str "\n--- RECIPE: " file-name " ---"))
       (println "Original lines:")
       (doseq [line original-lines]
