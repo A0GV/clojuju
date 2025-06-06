@@ -98,10 +98,16 @@
 (def rg-step-num (list "step-num" #"^[0-9]+\."))
 (def rg-fract-in (list "fract-in" #"[0-9]+/[0-9]+\""))
 
-(def rg-catch (list "words" #"[a-zA-Z]+"))
+; Keywords 
+(def rg-ingredients (list "kw-ingredient" #"^Ingredients(\:)*"))
+(def rg-instruct (list "kw-instruct" #"^Instructions"))
+
+; Just stores words bcs it's annoying to deal w a lot of floating tokens
+(def rg-catch (list "w" #"[a-zA-Z]+"))
 
 ;; Dictionary of numbers
 (def dict-recipe (list
+
                    rg-nums-int
                    rg-nums-frac
                    rg-nums-mixed
@@ -148,6 +154,9 @@
                     rg-temp-c rg-temp-f
                     ; Time mentions 
                     rg-pt rg-ct rg-tt
+
+                    ; Keywords 
+                    rg-ingredients rg-instruct
 
                     rg-step-num
                     rg-fract-in
@@ -502,12 +511,14 @@
                 )
 
                 ; Passes tokenized recipe and the tokens of user customization
-                (analyze-recipes recipes-processed opt-tokenized)
+                (def fix-recipes (analyze-recipes recipes-processed opt-tokenized))
             )
         )
     )
 
     (println exec-time)
+    (println "Fixed recipes")
+    (println fix-recipes)
 
 
 
