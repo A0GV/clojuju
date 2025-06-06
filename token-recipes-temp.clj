@@ -85,15 +85,20 @@
 
 ;(def rg-phrases (list "phrases" #"^[a-zA-Z0-9 ,\.\(\)]+"))
 ; Other words 
-(def rg-serves (list "serves-amt" #"^(?:Serves\s*-\s*|Servings\s*-\s*)[0-9]+\b"))
-;(def rg-serves (list "serves-amt" #"^(Serves\s*-\s*|Servings\s*-\s*)[0-9]+\b"))
+(def rg-serves (list "serves-amt" #"^(?:Serves\s*-\s*|Servings\s*-\s*)[0-9]+"))
+
 (def rg-temp-c (list "temp-C" #"^[0-9]+°C"))
 (def rg-temp-f (list "temp-F" #"^[0-9]+°F"))
-;(def rg-pt (list "prep-t" #"^(?:Prep Time\:\s*[0-9]+\s*(mins|minutes))"))
+
+(def rg-pt (list "prep-t" #"^Prep Time\:\s*[0-9]+\s*(?:mins|minutes)"))
+(def rg-ct (list "cook-t" #"^Cook Time\:\s*[0-9]+\s*(?:mins|minutes)"))
+(def rg-tt (list "total-t" #"^Total Time\:\s*[0-9]+\s*(?:mins|minutes)"))
+
+
 (def rg-step-num (list "step-num" #"^[0-9]+\."))
 (def rg-fract-in (list "fract-in" #"[0-9]+/[0-9]+\""))
 
-
+(def rg-catch (list "words" #"[a-zA-Z]+"))
 
 ;; Dictionary of numbers
 (def dict-recipe (list
@@ -141,9 +146,14 @@
                     ; Adding
                     rg-serves
                     rg-temp-c rg-temp-f
-                    ;rg-pt
+                    ; Time mentions 
+                    rg-pt rg-ct rg-tt
+
                     rg-step-num
                     rg-fract-in
+
+                    ; Catch case
+                    rg-catch
 
 ))
 
@@ -379,12 +389,13 @@
                     :else token
                 ))
             token-line)) 
-        '("?" "0")) ; It is not a sequence
+        '("\t" "\t")) ; It is not a sequence
     ;)
 )
 
 ; Main function to manipulate one recipe at a time based on user preferences
 (defn manipulate-recipe [recipe user-options]
+    (println "\n------- BEGIN MANIPULATION -------")
     (let [
             recipe-name (first recipe)
             original-lines (second recipe)
@@ -410,9 +421,6 @@
 
 ; Analyze all recipes and apply manipulations
 (defn analyze-recipes [processed-recipes user-tokens]
-    "Analyzes and manipulates all processed recipes based on user preferences"
-    (println "\n------- RECIPE MANIPULATION -------")
-    
     ; Apply manipulations to all recipes
     (let [manipulated-recipes (doall (map (fn [recipe]
                                      (manipulate-recipe recipe user-tokens))
@@ -421,7 +429,7 @@
         
         (println "Processed" (count manipulated-recipes) "recipes")
         
-        ; Return the manipulated recipes
+        ; Return the manipulated recipes in correct format 
         manipulated-recipes
     )
 )
@@ -523,4 +531,4 @@
 ;(main "options1.txt" 6)
 ;(main "options1.txt" 10)
 
-(main "options1.txt" 1)
+(main "options1.txt" 2)
