@@ -308,10 +308,26 @@
         ;(println "\n-------PROCESSED CHUNKS\n" processed-chunks)
         ;(println "\n---Recipe name " (first (first processed-chunks)))
 
-        (map (fn [x] (print (first x))) processed-chunks)
+        (println "\n--Recipe names: ")
+        (def recipe-names (map (fn [x] (first x) ) processed-chunks) ) ; Store names of recipes
+        (print recipe-names)
 
-        (println "\n--")
+        (println "\n\n\n--Recipe content")
+        ;(doall (map (fn [x] (println (second x) "\n\n")) processed-chunks))
+        (println "\n\n")
+        ; Creates list w the recipe content
+        (def recipe-content 
+            ;(apply concat
+                (map (fn [x] (second x)) processed-chunks)
+            ;)
+        )
+
+        (println (first recipe-content)) ; Format outer wraps the whole chunks, layer 2 (( )) the recipe and then ind lines
+
+        ; Now the tokens i guess 
         ;processed-chunks  ; Return the result
+
+        (doall (map (fn [x] (println (nth x 2) "\n\n")) processed-chunks))
     )
     ;(println "\n-------TOKENIZED CHUNKS\n" tokenized-chunks)
     
