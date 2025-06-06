@@ -171,6 +171,61 @@ rg-granulated-sugar
    "ingredient-parsley" {:cup-to-grams 61.5129 :tsp-to-grams 1.282 :tbsp-to-grams 3.845}
    
   })
-
+(def IngCal100
+  {
+   "ingredient-granulated-sugar" 400
+   "ingredient-sugar" 400
+   "ingredient-all-purpose-flour" 351.6
+   "ingredient-flour" 351.6
+   "ingredient-cocoa-powder" 229
+   "ingredient-cocoa" 229
+   "ingredient-powdered-sugar" 321.8
+   "ingredient-dark-chocolate-chips" 683.1
+   "ingredient-chocolate" 683.1
+   "ingredient-sea-salt" 0
+   "ingredient-kosher-salt" 0
+   "ingredient-salt" 0
+   "ingredient-eggs" 147
+   "ingredient-canola-oil" 882.1
+   "ingredient-extra-virgin-olive-oil" 884.1
+   "ingredient-olive-oil" 884.1
+   "ingredient-oil" 882.1
+   "ingredient-water" 0
+   "ingredient-vanilla-extract" 288
+   "ingredient-vanilla" 288
+   "ingredient-almond-flour" 2810.9
+   "ingredient-baking-powder" 53
+   "ingredient-lemon-zest-grated" 395.8
+   "ingredient-lemon-zest" 395.8
+   "ingredient-fresh-lemon-juice" 19.4
+   "ingredient-lemon-juice" 19.4
+   "ingredient-dry-fettuccine-pasta" 365
+   "ingredient-fettuccine-pasta" 365
+   "ingredient-pasta" 365
+   "ingredient-butter" 717
+   "ingredient-heavy-cream" 349.1
+   "ingredient-cream" 349.1
+   "ingredient-pepper" 26
+   "ingredient-red-pepper-flakes" 0
+   "ingredient-garlic-salt" 0
+   "ingredient-grated-romano-cheese" 431
+   "ingredient-romano-cheese" 431
+   "ingredient-romano" 431
+   "ingredient-grated-parmesan-cheese" 400
+   "ingredient-parmesan-cheese" 400
+   "ingredient-parmesan" 400
+   "ingredient-white-wine-vinegar" 0
+   "ingredient-vinegar" 0
+   "ingredient-garlic-clove-minced" 133
+   "ingredient-garlic-clove" 133
+   "ingredient-garlic" 133
+   "ingredient-dried-oregano" 360
+   "ingredient-oregano" 360
+   "ingredient-smoked-paprika" 289
+   "ingredient-paprika" 289
+   "ingredient-fresh-flat-leaf-parsley" 35.8
+   "ingredient-flat-leaf-parsley" 35.8
+   "ingredient-parsley" 35.8
+  })
 
 (println (get-in ingredient-conversions ["ingredient-sugar" :cup-to-grams]))
