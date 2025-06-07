@@ -370,7 +370,7 @@
 )
 
 ; Processes line using result of whether user wants celcius
-(defn process-token-line [token-line user-temp-units]
+(defn process-token-line [token-line user-temp-units user-num-portions]
     ;(println "Processing token-line")
     (if (seq token-line)
         (doall 
@@ -415,14 +415,17 @@
             
             ; Checks if user wants C
             user-temp-units (user-celsius-check user-options)
+            ; Extracts number of portions that user wants
+            user-num-portions (second (second (nth user-options 2)))
+            
         ]
         
-        (println "Processing recipe:" recipe-name "\n")
+        (println "Processing recipe:" recipe-name " with" user-num-portions " servings\n")
 
         ; Process all tokenized lines
         (let [
             corrected-temp (doall (map 
-                (fn [token-line] (process-token-line token-line user-temp-units)) tokenized-lines))
+                (fn [token-line] (process-token-line token-line user-temp-units user-num-portions)) tokenized-lines))
             ]
             
             ; Return updated recipe structure
@@ -470,6 +473,10 @@
 
     (println "\n-------TOKENIZED")
     (println opt-tokenized)
+
+    ; looking for user preferences servings amt
+    (print "looking for servings: ")
+    (print (second (second (nth opt-tokenized 2))) )
 
     ; Leer recetas
     (println "\n-------READ RECIPES")
