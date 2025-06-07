@@ -67,12 +67,15 @@
 (def rg-large (list "large" #"^large\b"))
 (def rg-to-taste (list "to-taste" #"^to\s+taste\b"))
 (def rg-for-dusting (list "for-dusting" #"^for\s+dusting\b"))
+(def rg-gram (list "gram" #"^grams?\b"))
+
 
 ;; Dictionary of numbers
 (def dict-numbers (list
-                   rg-nums-int
+                   rg-nums-mixed
                    rg-nums-frac
-                   rg-nums-mixed))
+                   rg-nums-int
+                   ))
 
 ;; Dictionary of ingredients
 (def dict-ingredients (list
@@ -137,7 +140,8 @@
                  rg-clove
                  rg-large
                  rg-to-taste
-                 rg-for-dusting))
+                 rg-for-dusting
+                 rg-gram))
 
 
 
@@ -315,36 +319,37 @@
 
 
 (def test-line-1
-  (list ["number-mixed" "1"] ["cup" "cups"] ["ingredient-sugar" "granulated sugar"]))
+  (list ["number-mixed" "1 1/2"] ["cup" "cups"] ["ingredient-sugar" "granulated sugar"]))
 
 ;; ;; Caso 2: Con fracción
-;; (def test-line-2 
-;;   (list ["number-fraction" "3/4"] ["cup" "cup"] ["ingredient-flour" "all-purpose flour"]))
+(def test-line-2 
+  (list ["number-fraction" "3/4"] ["cup" "cup"] ["ingredient-flour" "all-purpose flour"]))
 
 ;; ;; Caso 3: Con teaspoons
-;; (def test-line-3 
-;;   (list ["number-integer" "2"] ["teaspoon" "teaspoons"] ["ingredient-salt" "sea salt"]))
+(def test-line-3 
+  (list ["number-integer" "2"] ["teaspoon" "teaspoons"] ["ingredient-salt" "sea salt"]))
 
 ;; ;; Caso 4: Sin unidad
-;; (def test-line-4 
-;;   (list ["ingredient-chocolate" "dark chocolate chips"]))
+(def test-line-4 
+  (list ["ingredient-chocolate" "dark chocolate chips"]))
 
 ;; ;; Caso 5: Sin ingrediente
-;; (def test-line-5 
-;;   (list ["number-integer" "2"] ["cup" "cups"]))
+(def test-line-5 
+  (list ["number-integer" "2"] ["cup" "cups"]))
 
 ;; Ejecutar pruebas
-;; (println "=== CASOS DE PRUEBA ===")
-;; (println "Caso 1 (completo):" (process-ingredient-line test-line-1))
+(println "=== CASOS DE PRUEBA ===")
+(println "Caso 1 (completo):" (process-ingredient-line test-line-1))
+;; la salida es ingrediente
 
 
-(def test-number "1 1/2")
-(println "String original:" test-number)
-(println (mixedFrac test-number))
-(println "Convertido con numToInt:" (numToInt test-number))
+;; (def test-number "1 1/2")
+;; ;; (println "String original:" test-number)
+;; (println(type (mixedFrac test-number)))
+;; (println "Convertido con numToInt:" (numToInt test-number))
 
 
-;; (println "Caso 2 (fracción):" (process-ingredient-line test-line-2))
-;; (println "Caso 3 (teaspoons):" (process-ingredient-line test-line-3))
-;; (println "Caso 4 (sin unidad):" (process-ingredient-line test-line-4))
-;; (println "Caso 5 (sin ingrediente):" (process-ingredient-line test-line-5))
+(println "Caso 2 (fracción):" (process-ingredient-line test-line-2))
+(println "Caso 3 (teaspoons):" (process-ingredient-line test-line-3))
+(println "Caso 4 (sin unidad):" (process-ingredient-line test-line-4))
+(println "Caso 5 (sin ingrediente):" (process-ingredient-line test-line-5))
