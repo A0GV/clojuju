@@ -228,4 +228,112 @@ rg-granulated-sugar
    "ingredient-parsley" 35.8
   })
 
-(println (get-in ingredient-conversions ["ingredient-sugar" :cup-to-grams]))
+;; (println (get-in ingredient-conversions ["ingredient-sugar" :cup-to-grams]))
+
+(defn calculate-calories [ingredient-token grams]
+  (let [calories-per-100g (get IngCal100 ingredient-token 0)]
+    (* (/ grams 100.0) calories-per-100g)))
+
+;; (println (calculate-calories "ingredient-flat-leaf-parsley" 50.5))
+
+;; ========================================
+;; FUNCIONES PARA PARSEAR LOS NUMEROS
+;; ========================================
+
+
+;; Usa regex para encontrar dígitos y los convierte a entero
+(defn numToInt [int-str]
+  (Integer/parseInt (re-find #"\d+" int-str))
+  )
+
+; Obtiene el factor de conversión para un ingrediente específico
+(defn get-conversion [ingredient-key unit-type]
+  ;; Busca las conversiones del ingrediente en el mapa ingredient-conversions
+  (let [conversions (get ingredient-conversions ingredient-key)]
+    ;; Evalúa qué tipo de unidad es y retorna el factor correspondiente
+    (cond
+      ;; Si es "cup", retorna el factor cup-to-grams del ingrediente
+      (= unit-type "cup") (:cup-to-grams conversions)
+      ;; Si es "teaspoon", retorna el factor tsp-to-grams del ingrediente
+      (= unit-type "teaspoon") (:tsp-to-grams conversions)
+      ;; Si es "tablespoon", retorna el factor tbsp-to-grams del ingrediente
+      (= unit-type "tablespoon") (:tbsp-to-grams conversions)
+      ;; Si no es ninguna unidad conocida, retorna 1.0 como default
+      :else 1.0)))
+
+; Convierte de unidades imperiales a gramos
+(defn convert-to-grams [amount ingredient-key unit-key]
+  ;; Obtiene el factor de conversión llamando a get-conversion
+  (let [conversion-factor (get-conversion ingredient-key unit-key)]
+    ;; Si existe un factor de conversión, multiplica cantidad por factor
+    (if conversion-factor
+      (* amount conversion-factor)
+      amount))) ; Si no hay conversión, devuelve el valor original
+
+; Busca el primer token de un tipo específico en una línea
+(defn find-token-type [token-line token-type]
+  ;; Filtra tokens que no sean nil Y cuyo primer elemento sea igual al tipo buscado
+  (first (filter (fn [token] (and (not (nil? token)) (= (first token) token-type))) token-line)))
+
+; Busca cualquier token que comience con un prefijo
+(defn find-token-by-prefix [token-line prefix]
+  ;; Filtra tokens aplicando dos condiciones:
+  (first (filter (fn [token] 
+                   ;; 1. El token no debe ser nil
+                   (and (not (nil? token))
+                        ;; 2. El primer elemento del token debe empezar con el prefijo
+                        (clojure.string/starts-with? (str (first token)) prefix)))
+                 token-line)))
+
+(defn process-ingredient-line [token-line]
+  ;; Busca diferentes tipos de tokens numéricos (cantidad)
+  (let [quantity-token (or (find-token-type token-line "number-integer")
+                           (find-token-type token-line "number-fraction")
+                           (find-token-type token-line "number-mixed"))
+        ;; Busca tokens de unidades de medida
+        unit-token (or (find-token-type token-line "cup")
+                       (find-token-type token-line "teaspoon")
+                       (find-token-type token-line "tablespoon"))
+        ;; Busca cualquier token que empiece con "ingredient-"
+        ingredient-token (find-token-by-prefix token-line "ingredient-")]
+
+    ;; Verifica si tenemos al menos cantidad e ingrediente
+(if (and quantity-token ingredient-token)
+    (let [quantity (numToInt (second quantity-token))
+          ingredient-key (first ingredient-token)]
+      (if unit-token
+        (let [unit-key (first unit-token)
+              grams (convert-to-grams quantity ingredient-key unit-key)
+              calories (calculate-calories ingredient-key grams)]
+          ;; Retorna lista simple ("ingredient-sugar" 1.5 "cup" 301.295 1205.18)
+          (list ingredient-key quantity unit-key grams calories))
+        nil))
+    nil)))
+
+
+(def test-line-1 
+  (list ["number-mixed" "1"] ["cup" "cups"] ["ingredient-sugar" "granulated sugar"]))
+
+;; ;; Caso 2: Con fracción
+;; (def test-line-2 
+;;   (list ["number-fraction" "3/4"] ["cup" "cup"] ["ingredient-flour" "all-purpose flour"]))
+
+;; ;; Caso 3: Con teaspoons
+;; (def test-line-3 
+;;   (list ["number-integer" "2"] ["teaspoon" "teaspoons"] ["ingredient-salt" "sea salt"]))
+
+;; ;; Caso 4: Sin unidad
+;; (def test-line-4 
+;;   (list ["ingredient-chocolate" "dark chocolate chips"]))
+
+;; ;; Caso 5: Sin ingrediente
+;; (def test-line-5 
+;;   (list ["number-integer" "2"] ["cup" "cups"]))
+
+;; Ejecutar pruebas
+(println "=== CASOS DE PRUEBA ===")
+(println "Caso 1 (completo):" (process-ingredient-line test-line-1))
+;; (println "Caso 2 (fracción):" (process-ingredient-line test-line-2))
+;; (println "Caso 3 (teaspoons):" (process-ingredient-line test-line-3))
+;; (println "Caso 4 (sin unidad):" (process-ingredient-line test-line-4))
+;; (println "Caso 5 (sin ingrediente):" (process-ingredient-line test-line-5))
