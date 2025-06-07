@@ -102,6 +102,8 @@
 (def rg-ingredients (list "kw-ingredient" #"^Ingredients(\:)*"))
 (def rg-instruct (list "kw-instruct" #"^Instructions"))
 
+(def rg-dash (list "dash" #"^[-]"))
+
 ; Just stores words bcs it's annoying to deal w a lot of floating tokens
 (def rg-catch (list "w" #"[a-zA-Z]+"))
 
@@ -163,6 +165,7 @@
 
                     ; Catch case
                     rg-catch
+                    rg-dash
 
 ))
 
@@ -523,9 +526,12 @@
     (println "Fixed recipes")
 
     ; Structure of recipes 
-    (println (nth (first fix-recipes) 0) )
-    (println (nth (first fix-recipes) 1) )
-    (println (nth (first fix-recipes) 2) )
+    ;(println (nth (first fix-recipes) 0) )
+    ;(println (nth (first fix-recipes) 1) )
+    ;(println (nth (first fix-recipes) 2) )
+
+    ;(println (nth (map (first) fix-recipes) 2) )
+    (doall (map (fn [x] (println (nth x 2)"\n\nNext Recipe Tokens:\n")) fix-recipes)) ; Check all the recipes 
 
 
 

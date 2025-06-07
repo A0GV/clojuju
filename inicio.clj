@@ -102,6 +102,8 @@
 (def rg-ingredients (list "kw-ingredient" #"^Ingredients(\:)*"))
 (def rg-instruct (list "kw-instruct" #"^Instructions"))
 
+(def rg-dash (list "dash" #"^[-]"))
+
 ; Just stores words bcs it's annoying to deal w a lot of floating tokens
 (def rg-catch (list "w" #"[a-zA-Z]+"))
 
@@ -163,6 +165,7 @@
 
                     ; Catch case
                     rg-catch
+                    rg-dash
 
 ))
 
