@@ -76,55 +76,55 @@
 
 ;; Dictionary of ingredients
 (def dict-ingredients (list
-rg-granulated-sugar
-  rg-all-purpose-flour
-  rg-almond-flour
-  rg-cocoa-powder
-  rg-powdered-sugar
-  rg-dark-chocolate-chips
-  rg-sea-salt
-  rg-kosher-salt
-  rg-canola-oil
-  rg-extra-virgin-olive-oil
-  rg-olive-oil
-  rg-vanilla-extract
-  rg-lemon-zest-grated
-  rg-lemon-zest
-  rg-fresh-lemon-juice
-  rg-lemon-juice
-  rg-dry-fettuccine-pasta
-  rg-fettuccine-pasta
-  rg-heavy-cream
-  rg-red-pepper-flakes
-  rg-grated-romano-cheese
-  rg-romano-cheese
-  rg-grated-parmesan-cheese
-  rg-parmesan-cheese
-  rg-white-wine-vinegar
-  rg-garlic-clove-minced
-  rg-garlic-clove
-  rg-dried-oregano
-  rg-smoked-paprika
-  rg-fresh-flat-leaf-parsley
-  rg-flat-leaf-parsley
-  rg-sugar
-  rg-flour
-  rg-salt
-  rg-eggs
-  rg-oil
-  rg-water
-  rg-vanilla
-  rg-baking-powder
-  rg-pasta
-  rg-butter
-  rg-cream
-  rg-pepper
-  rg-garlic-salt
-  rg-vinegar
-  rg-garlic
-  rg-oregano
-  rg-paprika
-  rg-parsley))
+                       rg-granulated-sugar
+                       rg-all-purpose-flour
+                       rg-almond-flour
+                       rg-cocoa-powder
+                       rg-powdered-sugar
+                       rg-dark-chocolate-chips
+                       rg-sea-salt
+                       rg-kosher-salt
+                       rg-canola-oil
+                       rg-extra-virgin-olive-oil
+                       rg-olive-oil
+                       rg-vanilla-extract
+                       rg-lemon-zest-grated
+                       rg-lemon-zest
+                       rg-fresh-lemon-juice
+                       rg-lemon-juice
+                       rg-dry-fettuccine-pasta
+                       rg-fettuccine-pasta
+                       rg-heavy-cream
+                       rg-red-pepper-flakes
+                       rg-grated-romano-cheese
+                       rg-romano-cheese
+                       rg-grated-parmesan-cheese
+                       rg-parmesan-cheese
+                       rg-white-wine-vinegar
+                       rg-garlic-clove-minced
+                       rg-garlic-clove
+                       rg-dried-oregano
+                       rg-smoked-paprika
+                       rg-fresh-flat-leaf-parsley
+                       rg-flat-leaf-parsley
+                       rg-sugar
+                       rg-flour
+                       rg-salt
+                       rg-eggs
+                       rg-oil
+                       rg-water
+                       rg-vanilla
+                       rg-baking-powder
+                       rg-pasta
+                       rg-butter
+                       rg-cream
+                       rg-pepper
+                       rg-garlic-salt
+                       rg-vinegar
+                       rg-garlic
+                       rg-oregano
+                       rg-paprika
+                       rg-parsley))
 
 ;; Dictionary of units
 (def dict-units (list
@@ -143,8 +143,7 @@ rg-granulated-sugar
 
 
 (def ingredient-conversions
-  {
-   "ingredient-sugar" {:cup-to-grams 200.8634 :tsp-to-grams 4.184 :tbsp-to-grams 12.554}
+  {"ingredient-sugar" {:cup-to-grams 200.8634 :tsp-to-grams 4.184 :tbsp-to-grams 12.554}
    "ingredient-flour" {:cup-to-grams 125.1552 :tsp-to-grams 2.607 :tbsp-to-grams 7.822}
    "ingredient-cocoa" {:cup-to-grams 151.6531 :tsp-to-grams 3.159 :tbsp-to-grams 9.478}
    "ingredient-powdered-sugar" {:cup-to-grams 120.8966 :tsp-to-grams 2.519 :tbsp-to-grams 7.556}
@@ -168,12 +167,9 @@ rg-granulated-sugar
    "ingredient-garlic" {:cup-to-grams 113.97 :tsp-to-grams 2.374 :tbsp-to-grams 7.123}
    "ingredient-oregano" {:cup-to-grams 47.32 :tsp-to-grams 0.986 :tbsp-to-grams 2.958}
    "ingredient-paprika" {:cup-to-grams 134.8553 :tsp-to-grams 2.810 :tbsp-to-grams 8.428}
-   "ingredient-parsley" {:cup-to-grams 61.5129 :tsp-to-grams 1.282 :tbsp-to-grams 3.845}
-   
-  })
+   "ingredient-parsley" {:cup-to-grams 61.5129 :tsp-to-grams 1.282 :tbsp-to-grams 3.845}})
 (def IngCal100
-  {
-   "ingredient-granulated-sugar" 400
+  {"ingredient-granulated-sugar" 400
    "ingredient-sugar" 400
    "ingredient-all-purpose-flour" 351.6
    "ingredient-flour" 351.6
@@ -225,14 +221,14 @@ rg-granulated-sugar
    "ingredient-paprika" 289
    "ingredient-fresh-flat-leaf-parsley" 35.8
    "ingredient-flat-leaf-parsley" 35.8
-   "ingredient-parsley" 35.8
-  })
+   "ingredient-parsley" 35.8})
 
 ;; (println (get-in ingredient-conversions ["ingredient-sugar" :cup-to-grams]))
 
 (defn calculate-calories [ingredient-token grams]
   (let [calories-per-100g (get IngCal100 ingredient-token 0)]
     (* (/ grams 100.0) calories-per-100g)))
+
 
 ;; (println (calculate-calories "ingredient-flat-leaf-parsley" 50.5))
 
@@ -243,8 +239,12 @@ rg-granulated-sugar
 
 ;; Usa regex para encontrar dígitos y los convierte a entero
 (defn numToInt [int-str]
-  (Integer/parseInt (re-find #"\d+" int-str))
-  )
+  (read-string int-str))
+
+(defn mixedFrac [mixed-frac]
+  (let [parts (clojure.string/split mixed-frac #" ")
+        resp (+ (numToInt (first parts)) (numToInt (second parts)))]
+    resp))
 
 ; Obtiene el factor de conversión para un ingrediente específico
 (defn get-conversion [ingredient-key unit-type]
@@ -278,7 +278,7 @@ rg-granulated-sugar
 ; Busca cualquier token que comience con un prefijo
 (defn find-token-by-prefix [token-line prefix]
   ;; Filtra tokens aplicando dos condiciones:
-  (first (filter (fn [token] 
+  (first (filter (fn [token]
                    ;; 1. El token no debe ser nil
                    (and (not (nil? token))
                         ;; 2. El primer elemento del token debe empezar con el prefijo
@@ -298,20 +298,23 @@ rg-granulated-sugar
         ingredient-token (find-token-by-prefix token-line "ingredient-")]
 
     ;; Verifica si tenemos al menos cantidad e ingrediente
-(if (and quantity-token ingredient-token)
-    (let [quantity (numToInt (second quantity-token))
-          ingredient-key (first ingredient-token)]
-      (if unit-token
-        (let [unit-key (first unit-token)
-              grams (convert-to-grams quantity ingredient-key unit-key)
-              calories (calculate-calories ingredient-key grams)]
-          ;; Retorna lista simple ("ingredient-sugar" 1.5 "cup" 301.295 1205.18)
-          (list ingredient-key quantity unit-key grams calories))
-        nil))
-    nil)))
+    (if (and quantity-token ingredient-token)
+      (let [;; Decide qué función usar según el tipo de token numérico
+            quantity (if (= (first quantity-token) "number-mixed")
+                       (mixedFrac (second quantity-token))  ; Llama a mixedFrac para fracciones mixtas
+                       (numToInt (second quantity-token)))  ; Usa numToInt para otros tipos
+            ingredient-key (first ingredient-token)]
+        (if unit-token
+          (let [unit-key (first unit-token)
+                grams (convert-to-grams quantity ingredient-key unit-key)
+                calories (calculate-calories ingredient-key grams)]
+            ;; Retorna lista simple ("ingredient-sugar" 1.5 "cup" 301.295 1205.18)
+            (list ingredient-key quantity unit-key grams calories))
+          nil))
+      nil)))
 
 
-(def test-line-1 
+(def test-line-1
   (list ["number-mixed" "1"] ["cup" "cups"] ["ingredient-sugar" "granulated sugar"]))
 
 ;; ;; Caso 2: Con fracción
@@ -331,8 +334,16 @@ rg-granulated-sugar
 ;;   (list ["number-integer" "2"] ["cup" "cups"]))
 
 ;; Ejecutar pruebas
-(println "=== CASOS DE PRUEBA ===")
-(println "Caso 1 (completo):" (process-ingredient-line test-line-1))
+;; (println "=== CASOS DE PRUEBA ===")
+;; (println "Caso 1 (completo):" (process-ingredient-line test-line-1))
+
+
+(def test-number "1 1/2")
+(println "String original:" test-number)
+(println (mixedFrac test-number))
+(println "Convertido con numToInt:" (numToInt test-number))
+
+
 ;; (println "Caso 2 (fracción):" (process-ingredient-line test-line-2))
 ;; (println "Caso 3 (teaspoons):" (process-ingredient-line test-line-3))
 ;; (println "Caso 4 (sin unidad):" (process-ingredient-line test-line-4))
