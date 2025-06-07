@@ -521,7 +521,12 @@
 
     (println exec-time)
     (println "Fixed recipes")
-    (println fix-recipes)
+
+    ; Structure of recipes 
+    (println (nth (first fix-recipes) 0) )
+    (println (nth (first fix-recipes) 1) )
+    (println (nth (first fix-recipes) 2) )
+
 
 
 
