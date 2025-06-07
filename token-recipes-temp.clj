@@ -328,8 +328,8 @@
 
 ;; SUB-FUNCTIONS FOR RECIPE CONVERSION
 ; Extrae val numerico de temp given  
-(defn extract-temp-value [temp-string]
-    (let [numeric-part (re-find #"\d+" temp-string)]
+(defn extract-num-value [num-string]
+    (let [numeric-part (re-find #"\d+" num-string)]
         ; Returns num if it did match, 0 if it did not find the number
         (if numeric-part (Integer/parseInt numeric-part) 0)
     )
@@ -339,7 +339,7 @@
 (defn f-to-c [f-temp-string]
     (let [
             ; Calls helper funct to convert farenheit 
-            f-value (extract-temp-value f-temp-string)
+            f-value (extract-num-value f-temp-string)
             c-value (/ (* (- f-value 32) 5) 9.0) ; Plugs into eq
         ]
         (list "temp-C" (str c-value "°C")))
@@ -349,11 +349,21 @@
 (defn c-to-f [c-temp-string]
     (let [
             ; Calls helper funct to convert farenheit 
-            c-value (extract-temp-value c-temp-string)
+            c-value (extract-num-value c-temp-string)
             f-value (+ (* c-value (/ 9 5)) 32) ; Plugs into eq
         ]
         (list "temp-F" (str f-value "°F")))
 )
+
+; Converts int or fraction to a numeric val
+(defn numToInt [int-str]
+  (read-string int-str))
+
+; Converts a mixed fraction to a number
+(defn mixedFrac [mixed-frac]
+  (let [parts (clojure.string/split mixed-frac #" ")
+        resp (+ (numToInt (first parts)) (numToInt (second parts)))]
+    resp))
 
 ;; COMPARISON TOKENS AGAINST USER PREFERENCES
 ; Check user wants cel
@@ -412,15 +422,31 @@
             recipe-name (first recipe)
             original-lines (second recipe)
             tokenized-lines (nth recipe 2)
-            
+
             ; Checks if user wants C
             user-temp-units (user-celsius-check user-options)
-            ; Extracts number of portions that user wants
-            user-num-portions (second (second (nth user-options 2)))
-            
+            ; Extracts number of portions that user wants, need read-string to handle that it's a string
+            user-num-portions (read-string (second (second (nth user-options 2))) )
+
+            ; Find recipe number of servings from tokenized lines
+            recipe-serves 
+                ; Extracts number value
+                (extract-num-value
+                    ; Extract the token for serves 
+                    (second (first 
+                        (filter 
+                            (fn [token-line] (= (first token-line) "serves-amt")) 
+                        ; Need to flatten when looking for amt to take into account diff line skips and such
+                        (apply concat tokenized-lines)
+                        ))
+                    )
+                )
+
+            ; Amt to scale a recipe
+            scale-factor (/ user-num-portions recipe-serves)
         ]
         
-        (println "Processing recipe:" recipe-name " with" user-num-portions " servings\n")
+        (println "Processing recipe:" recipe-name " with" recipe-serves " user wants  " user-num-portions "; scaled: " scale-factor "\n")
 
         ; Process all tokenized lines
         (let [
@@ -564,3 +590,5 @@
 ;(main "options1.txt" 10)
 
 (main "options1.txt" 1)
+
+(println "Mixed convert: " (string? (mixedFrac "1 1/2"))) ; Test fraction to make sure its an int

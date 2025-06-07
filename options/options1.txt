@@ -1,4 +1,4 @@
 system: metric
-temp: F  
+temp: C  
 portions: 4
 filter: all
