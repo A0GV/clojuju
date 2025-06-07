@@ -324,9 +324,9 @@
 )
 
 ;; SUB-FUNCTIONS FOR RECIPE CONVERSION
-; Extrae val numerico de temp given  
-(defn extract-temp-value [temp-string]
-    (let [numeric-part (re-find #"\d+" temp-string)]
+; Extrae val numerico de val numerico given  
+(defn extract-num-value [num-string]
+    (let [numeric-part (re-find #"\d+" num-string)]
         ; Returns num if it did match, 0 if it did not find the number
         (if numeric-part (Integer/parseInt numeric-part) 0)
     )
@@ -336,7 +336,7 @@
 (defn f-to-c [f-temp-string]
     (let [
             ; Calls helper funct to convert farenheit 
-            f-value (extract-temp-value f-temp-string)
+            f-value (extract-num-value f-temp-string)
             c-value (/ (* (- f-value 32) 5) 9.0) ; Plugs into eq
         ]
         (list "temp-C" (str c-value "°C")))
@@ -346,7 +346,7 @@
 (defn c-to-f [c-temp-string]
     (let [
             ; Calls helper funct to convert farenheit 
-            c-value (extract-temp-value c-temp-string)
+            c-value (extract-num-value c-temp-string)
             f-value (+ (* c-value (/ 9 5)) 32) ; Plugs into eq
         ]
         (list "temp-F" (str f-value "°F")))

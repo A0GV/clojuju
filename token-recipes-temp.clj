@@ -481,6 +481,9 @@
     ;           "recipes/Pan-Seared Steak with Garlic Butter.txt"])
     (def ruta ["recipes/Best Homemade Brownies-1.txt"
                 "recipes/Chimichurri Sauce.txt" 
+                "recipes/Fettuccine Alfredo.txt"
+                "recipes/Lemon Cake-1.txt"
+                "recipes/Pan-Seared Steak with Garlic Butter.txt"
 
     ])
 
@@ -542,4 +545,4 @@
 ;(main "options1.txt" 6)
 ;(main "options1.txt" 10)
 
-(main "options1.txt" 2)
+(main "options1.txt" 1)
