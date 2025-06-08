@@ -21,19 +21,18 @@
 (def rg-other (list "custom-filter" #"^[a-z]+"))
 
 ;; Dictionary of tokens
-(def dict-user (list 
-    rg-system
-    rg-u-cup rg-u-tsp rg-u-met
-    
-    rg-temp 
-    rg-c rg-f
-    
-    rg-portions 
-    rg-num-port
-    
-    rg-filter
-    rg-all rg-other
-))
+(def dict-user (list
+                rg-system
+                rg-u-cup rg-u-tsp rg-u-met
+
+                rg-temp
+                rg-c rg-f
+
+                rg-portions
+                rg-num-port
+
+                rg-filter
+                rg-all rg-other))
 
 ;; Recetas
 ; Regex para números enteros
@@ -45,7 +44,46 @@
 ; Regex para fracciones mixtas
 (def rg-nums-mixed (list "number-mixed" #"^[0-9]+\s+[0-9]+/[0-9]+"))
 
-; Regex para ingredientes (case sensitive)
+; Nuevos ingredientes específicos agregados del código 2
+(def rg-granulated-sugar (list "ingredient-granulated-sugar" #"^\bgranulated\s+sugar\b"))
+(def rg-all-purpose-flour (list "ingredient-all-purpose-flour" #"^\ball-purpose\s+flour\b"))
+(def rg-almond-flour (list "ingredient-almond-flour" #"^\balmond\s+flour\b"))
+(def rg-cocoa-powder (list "ingredient-cocoa-powder" #"^\bcocoa\s+powder\b"))
+(def rg-dark-chocolate-chips (list "ingredient-dark-chocolate-chips" #"^\bdark\s+chocolate\s+chips\b"))
+(def rg-sea-salt (list "ingredient-sea-salt" #"^\bsea\s+salt\b"))
+(def rg-kosher-salt (list "ingredient-kosher-salt" #"^\bkosher\s+salt\b"))
+(def rg-canola-oil (list "ingredient-canola-oil" #"^\bcanola\s+oil\b"))
+(def rg-extra-virgin-olive-oil (list "ingredient-extra-virgin-olive-oil" #"^\bextra-virgin\s+olive\s+oil\b"))
+(def rg-olive-oil (list "ingredient-olive-oil" #"^\bolive\s+oil\b"))
+(def rg-vanilla-extract (list "ingredient-vanilla-extract" #"^\bvanilla\s+extract\b"))
+(def rg-lemon-zest-grated (list "ingredient-lemon-zest-grated" #"^\blemon\s+zest\s+\(grated\)\b"))
+(def rg-fresh-lemon-juice (list "ingredient-fresh-lemon-juice" #"^\bfresh\s+lemon\s+juice\b"))
+(def rg-dry-fettuccine-pasta (list "ingredient-dry-fettuccine-pasta" #"^\bdry\s+fettuccine\s+pasta\b"))
+(def rg-fettuccine-pasta (list "ingredient-fettuccine-pasta" #"^\bfettuccine\s+pasta\b"))
+(def rg-heavy-cream (list "ingredient-heavy-cream" #"^\bheavy\s+cream\b"))
+(def rg-red-pepper-flakes (list "ingredient-red-pepper-flakes" #"^\bred\s+pepper\s+flakes\b"))
+(def rg-grated-romano-cheese (list "ingredient-grated-romano-cheese" #"^\bgrated\s+romano\s+cheese\b"))
+(def rg-romano-cheese (list "ingredient-romano-cheese" #"^\bromano\s+cheese\b"))
+(def rg-grated-parmesan-cheese (list "ingredient-grated-parmesan-cheese" #"^\bgrated\s+parmesan\s+cheese\b"))
+(def rg-parmesan-cheese (list "ingredient-parmesan-cheese" #"^\bparmesan\s+cheese\b"))
+(def rg-white-wine-vinegar (list "ingredient-white-wine-vinegar" #"^\bwhite\s+wine\s+vinegar\b"))
+(def rg-garlic-clove-minced (list "ingredient-garlic-clove-minced" #"^\bgarlic\s+clove\s+\(minced\)\b"))
+(def rg-garlic-clove (list "ingredient-garlic-clove" #"^\bgarlic\s+clove\b"))
+(def rg-dried-oregano (list "ingredient-dried-oregano" #"^\bdried\s+oregano\b"))
+(def rg-smoked-paprika (list "ingredient-smoked-paprika" #"^\bsmoked\s+paprika\b"))
+(def rg-fresh-flat-leaf-parsley (list "ingredient-fresh-flat-leaf-parsley" #"^\bfresh\s+flat-leaf\s+parsley\b"))
+(def rg-flat-leaf-parsley (list "ingredient-flat-leaf-parsley" #"^\bflat-leaf\s+parsley\b"))
+(def rg-new-york-strip-steaks (list "ingredient-new-york-strip-steaks" #"^\bnew\s+york\s+strip\s+steaks?\b"))
+(def rg-top-sirloin-steaks (list "ingredient-top-sirloin-steaks" #"^\btop\s+sirloin\s+steaks?\b"))
+(def rg-ribeye (list "ingredient-ribeye" #"^\bribeye\b"))
+(def rg-steaks (list "ingredient-steaks" #"^\bsteaks?\b"))
+(def rg-black-pepper (list "ingredient-black-pepper" #"^\bblack\s+pepper\b"))
+(def rg-unsalted-butter (list "ingredient-unsalted-butter" #"^\bunsalted\s+butter\b"))
+(def rg-fresh-rosemary (list "ingredient-fresh-rosemary" #"^\bfresh\s+rosemary\b"))
+(def rg-rosemary (list "ingredient-rosemary" #"^\brosemary\b"))
+(def rg-ground-almonds (list "ingredient-ground-almonds" #"^\bground\s+almonds?\b"))
+
+; Regex para ingredientes (case sensitive) - manteniendo los originales
 (def rg-sugar (list "ingredient-sugar" #"^\b(?:granulated\s+)?sugar\b"))
 (def rg-flour (list "ingredient-flour" #"^\b(?:all-purpose\s+|almond\s+)?flour\b"))
 (def rg-cocoa (list "ingredient-cocoa" #"^\bcocoa\s+powder\b"))
@@ -72,6 +110,14 @@
 (def rg-paprika (list "ingredient-paprika" #"\bsmoked\s+paprika\b"))
 (def rg-parsley (list "ingredient-parsley" #"\b(?:fresh\s+)?flat-leaf\s+parsley\b"))
 
+; Nuevas unidades agregadas del código 2
+(def rg-lbs (list "lbs" #"\blbs?\b"))
+(def rg-pounds (list "pounds" #"\bpounds?\b"))
+(def rg-lb (list "lb" #"\blb\b"))
+(def rg-inches (list "inches" #"\binches?\b"))
+(def rg-quote-inches (list "inches" #"^\"\b"))
+(def rg-in (list "in" #"\bin\b"))
+
 (def rg-cup (list "cup" #"\bcups?\b"))
 (def rg-teaspoon (list "teaspoon" #"\bteaspoons?\b"))
 (def rg-tablespoon (list "tablespoon" #"\btablespoons?\b"))
@@ -95,7 +141,6 @@
 (def rg-ct (list "cook-t" #"^Cook Time\:\s*[0-9]+\s*(?:mins|minutes)"))
 (def rg-tt (list "total-t" #"^Total Time\:\s*[0-9]+\s*(?:mins|minutes)"))
 
-
 (def rg-step-num (list "step-num" #"^[0-9]+\."))
 (def rg-fract-in (list "fract-in" #"[0-9]+/[0-9]+\""))
 
@@ -111,76 +156,223 @@
 (def rg-time-mention (list "time-mention" #"^[0-9]+\–*\s*(?:minutes|minute)"))
 (def rg-8x8 (list "w" #"^[0-9]x[0-9]"))
 
-
 ; Just stores words bcs it's annoying to deal w a lot of floating tokens
 (def rg-catch (list "w" #"[a-zA-Z]+"))
 
 ;; Dictionary of numbers
 (def dict-recipe (list
-                   rg-nums-int
-                   rg-nums-frac
-                   rg-nums-mixed
-                
-                    rg-sugar
-                    rg-flour
-                    rg-cocoa
-                    rg-powdered-sugar
-                    rg-chocolate
-                    rg-salt
-                    rg-eggs
-                    rg-oil
-                    rg-water
-                    rg-vanilla
-                    rg-baking-powder
-                    rg-lemon-zest
-                    rg-lemon-juice
-                    rg-pasta
-                    rg-butter
-                    rg-cream
-                    rg-pepper
-                    rg-garlic-salt
-                    rg-romano
-                    rg-parmesan
-                    rg-vinegar
-                    rg-garlic
-                    rg-oregano
-                    rg-paprika
-                    rg-parsley
+                  rg-nums-int
+                  rg-nums-frac
+                  rg-nums-mixed
 
-                    rg-cup
-                    rg-teaspoon
-                    rg-tablespoon
-                    rg-ounce
-                    rg-pint
-                    rg-dash
-                    rg-clove
-                    rg-large
-                    rg-to-taste
-                    rg-for-dusting
-                    rg-gram
+                    ; Ingredientes específicos primero (orden importante)
+                  rg-granulated-sugar
+                  rg-all-purpose-flour
+                  rg-almond-flour
+                  rg-cocoa-powder
+                  rg-powdered-sugar
+                  rg-dark-chocolate-chips
+                  rg-sea-salt
+                  rg-kosher-salt
+                  rg-canola-oil
+                  rg-extra-virgin-olive-oil
+                  rg-olive-oil
+                  rg-vanilla-extract
+                  rg-lemon-zest-grated
+                  rg-fresh-lemon-juice
+                  rg-dry-fettuccine-pasta
+                  rg-fettuccine-pasta
+                  rg-heavy-cream
+                  rg-red-pepper-flakes
+                  rg-grated-romano-cheese
+                  rg-romano-cheese
+                  rg-grated-parmesan-cheese
+                  rg-parmesan-cheese
+                  rg-white-wine-vinegar
+                  rg-garlic-clove-minced
+                  rg-garlic-clove
+                  rg-dried-oregano
+                  rg-smoked-paprika
+                  rg-fresh-flat-leaf-parsley
+                  rg-flat-leaf-parsley
+                  rg-new-york-strip-steaks
+                  rg-top-sirloin-steaks
+                  rg-ribeye
+                  rg-black-pepper
+                  rg-unsalted-butter
+                  rg-fresh-rosemary
+                  rg-ground-almonds
+
+                    ;; Ingredientes generales después
+                  rg-sugar
+                  rg-flour
+                  rg-cocoa
+                  rg-powdered-sugar
+                  rg-chocolate
+                  rg-salt
+                  rg-eggs
+                  rg-oil
+                  rg-water
+                  rg-vanilla
+                  rg-baking-powder
+                  rg-lemon-zest
+                  rg-lemon-juice
+                  rg-pasta
+                  rg-butter
+                  rg-cream
+                  rg-pepper
+                  rg-garlic-salt
+                  rg-romano
+                  rg-parmesan
+                  rg-vinegar
+                  rg-garlic
+                  rg-oregano
+                  rg-paprika
+                  rg-parsley
+                  rg-steaks
+                  rg-rosemary
+
+                    ; Unidades
+                  rg-cup
+                  rg-teaspoon
+                  rg-tablespoon
+                  rg-ounce
+                  rg-pint
+                  rg-lbs
+                  rg-pounds
+                  rg-lb
+                  rg-inches
+                  rg-quote-inches
+                  rg-in
+                  rg-dash
+                  rg-clove
+                  rg-large
+                  rg-to-taste
+                  rg-for-dusting
+                  rg-gram
 
                     ; Adding
-                    rg-serves
-                    rg-temp-c rg-temp-f
+                  rg-serves
+                  rg-temp-c rg-temp-f
                     ; Time mentions 
-                    rg-pt rg-ct rg-tt
+                  rg-pt rg-ct rg-tt
 
                     ; Keywords 
-                    rg-ingredients rg-instruct
+                  rg-ingredients rg-instruct
 
-                    rg-step-num
-                    rg-fract-in
+                  rg-step-num
+                  rg-fract-in
 
                     ; Catch case
-                    rg-time-dash-range
-                    rg-time-range
-                    rg-time-dash
-                    rg-time-mention
-                    rg-catch
-                    rg-dash
-                    rg-8x8
+                  rg-time-dash-range
+                  rg-time-range
+                  rg-time-dash
+                  rg-time-mention
+                  rg-catch
+                  rg-dash
+                  rg-8x8))
 
-))
+;; Conversiones de ingredientes (diccionario nuevo como solicitas)
+(def ingredient-conversions
+  {"ingredient-sugar" {:cup-to-grams 200.8634 :tsp-to-grams 4.184 :tbsp-to-grams 12.554}
+   "ingredient-flour" {:cup-to-grams 125.1552 :tsp-to-grams 2.607 :tbsp-to-grams 7.822}
+   "ingredient-cocoa" {:cup-to-grams 151.6531 :tsp-to-grams 3.159 :tbsp-to-grams 9.478}
+   "ingredient-powdered-sugar" {:cup-to-grams 120.8966 :tsp-to-grams 2.519 :tbsp-to-grams 7.556}
+   "ingredient-chocolate" {:cup-to-grams 187.3779 :tsp-to-grams 3.904 :tbsp-to-grams 11.711}
+   "ingredient-salt" {:cup-to-grams 284.1425 :tsp-to-grams 5.920 :tbsp-to-grams 17.759}
+   "ingredient-eggs" {:cup-to-grams 246.0518 :tsp-to-grams 5.126 :tbsp-to-grams 15.378}
+   "ingredient-oil" {:cup-to-grams 217.6612 :tsp-to-grams 4.534 :tbsp-to-grams 13.604}
+   "ingredient-water" {:cup-to-grams 236.5882 :tsp-to-grams 4.929 :tbsp-to-grams 14.787}
+   "ingredient-vanilla" {:cup-to-grams 207.9847 :tsp-to-grams 4.333 :tbsp-to-grams 12.999}
+   "ingredient-baking-powder" {:cup-to-grams 212.9294 :tsp-to-grams 4.436 :tbsp-to-grams 13.308}
+   "ingredient-lemon-zest" {:cup-to-grams 97.0012 :tsp-to-grams 2.021 :tbsp-to-grams 6.063}
+   "ingredient-lemon-juice" {:cup-to-grams 314.6624 :tsp-to-grams 6.555 :tbsp-to-grams 19.666}
+   "ingredient-pasta" {:cup-to-grams 89.9035 :tsp-to-grams 1.873 :tbsp-to-grams 5.619}
+   "ingredient-butter" {:cup-to-grams 226.8881 :tsp-to-grams 4.727 :tbsp-to-grams 14.181}
+   "ingredient-cream" {:cup-to-grams 235.1687 :tsp-to-grams 4.900 :tbsp-to-grams 14.698}
+   "ingredient-pepper" {:cup-to-grams 115.93 :tsp-to-grams 2.415 :tbsp-to-grams 7.246}
+   "ingredient-garlic-salt" {:cup-to-grams 75.7082 :tsp-to-grams 1.577 :tbsp-to-grams 4.732}
+   "ingredient-romano" {:cup-to-grams 82.8059 :tsp-to-grams 1.725 :tbsp-to-grams 5.175}
+   "ingredient-parmesan" {:cup-to-grams 120.66 :tsp-to-grams 2.514 :tbsp-to-grams 7.541}
+   "ingredient-vinegar" {:cup-to-grams 236.59 :tsp-to-grams 4.929 :tbsp-to-grams 14.787}
+   "ingredient-garlic" {:cup-to-grams 113.97 :tsp-to-grams 2.374 :tbsp-to-grams 7.123}
+   "ingredient-oregano" {:cup-to-grams 47.32 :tsp-to-grams 0.986 :tbsp-to-grams 2.958}
+   "ingredient-paprika" {:cup-to-grams 134.8553 :tsp-to-grams 2.810 :tbsp-to-grams 8.428}
+   "ingredient-parsley" {:cup-to-grams 61.5129 :tsp-to-grams 1.282 :tbsp-to-grams 3.845}
+   "ingredient-steaks" {:lb-to-grams 453.592 :oz-to-grams 28.3495}
+   "ingredient-new-york-strip-steaks" {:lb-to-grams 453.592 :oz-to-grams 28.3495}
+   "ingredient-ribeye" {:lb-to-grams 453.592 :oz-to-grams 28.3495}
+   "ingredient-top-sirloin-steaks" {:lb-to-grams 453.592 :oz-to-grams 28.3495}
+   "ingredient-black-pepper" {:cup-to-grams 115.93 :tsp-to-grams 2.415 :tbsp-to-grams 7.246 :lb-to-grams 453.592}
+   "ingredient-unsalted-butter" {:cup-to-grams 226.8881 :tsp-to-grams 4.727 :tbsp-to-grams 14.181 :lb-to-grams 453.592}
+   "ingredient-fresh-rosemary" {:cup-to-grams 58.2 :tsp-to-grams 1.213 :tbsp-to-grams 3.638 :lb-to-grams 453.592}
+   "ingredient-rosemary" {:cup-to-grams 58.2 :tsp-to-grams 1.213 :tbsp-to-grams 3.638 :lb-to-grams 453.592}
+   "ingredient-ground-almonds" {:cup-to-grams 95.0 :tsp-to-grams 1.979 :tbsp-to-grams 5.938 :lb-to-grams 453.592}})
+
+;; Calorías por 100g de ingrediente (diccionario nuevo como solicitas)
+(def IngCal100
+  {"ingredient-granulated-sugar" 400
+   "ingredient-sugar" 400
+   "ingredient-all-purpose-flour" 351.6
+   "ingredient-flour" 351.6
+   "ingredient-cocoa-powder" 229
+   "ingredient-cocoa" 229
+   "ingredient-powdered-sugar" 321.8
+   "ingredient-dark-chocolate-chips" 683.1
+   "ingredient-chocolate" 683.1
+   "ingredient-sea-salt" 0
+   "ingredient-kosher-salt" 0
+   "ingredient-salt" 0
+   "ingredient-eggs" 147
+   "ingredient-canola-oil" 882.1
+   "ingredient-extra-virgin-olive-oil" 884.1
+   "ingredient-olive-oil" 884.1
+   "ingredient-oil" 882.1
+   "ingredient-water" 0
+   "ingredient-vanilla-extract" 288
+   "ingredient-vanilla" 288
+   "ingredient-almond-flour" 2810.9
+   "ingredient-baking-powder" 53
+   "ingredient-lemon-zest-grated" 395.8
+   "ingredient-lemon-zest" 395.8
+   "ingredient-fresh-lemon-juice" 19.4
+   "ingredient-lemon-juice" 19.4
+   "ingredient-dry-fettuccine-pasta" 365
+   "ingredient-fettuccine-pasta" 365
+   "ingredient-pasta" 365
+   "ingredient-butter" 717
+   "ingredient-heavy-cream" 349.1
+   "ingredient-cream" 349.1
+   "ingredient-pepper" 26
+   "ingredient-red-pepper-flakes" 0
+   "ingredient-garlic-salt" 0
+   "ingredient-grated-romano-cheese" 431
+   "ingredient-romano-cheese" 431
+   "ingredient-romano" 431
+   "ingredient-grated-parmesan-cheese" 400
+   "ingredient-parmesan-cheese" 400
+   "ingredient-parmesan" 400
+   "ingredient-white-wine-vinegar" 0
+   "ingredient-vinegar" 0
+   "ingredient-garlic-clove-minced" 133
+   "ingredient-garlic-clove" 133
+   "ingredient-garlic" 133
+   "ingredient-dried-oregano" 360
+   "ingredient-oregano" 360
+   "ingredient-smoked-paprika" 289
+   "ingredient-paprika" 289
+   "ingredient-fresh-flat-leaf-parsley" 35.8
+   "ingredient-flat-leaf-parsley" 35.8
+   "ingredient-parsley" 35.8
+   "ingredient-steaks" 271
+   "ingredient-new-york-strip-steaks" 271
+   "ingredient-ribeye" 291
+   "ingredient-top-sirloin-steaks" 259
+   "ingredient-black-pepper" 26
+   "ingredient-unsalted-butter" 717
+   "ingredient-fresh-rosemary" 131
+   "ingredient-rosemary" 131
+   "ingredient-ground-almonds" 579})
 
 ;; FILE READING
 ; Funct to read file line by line
