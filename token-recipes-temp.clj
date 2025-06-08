@@ -438,7 +438,9 @@
                         (not (nil? token)) 
                         (not (empty? token))
                         ; If it is a 
-                        (= (first token) "number-integer")
+                        (or (= (first token) "number-integer")
+                            (= (first token) "number-fraction")
+                        )
                     )
                         ; Multiplies current amt by scale factor 
                         ;(println "FRACTION " (first token) "value: " extract-num-value (second token) )
@@ -447,8 +449,9 @@
                         (let [original-str (second token)  ; Get the string value
                              original-value (numToInt original-str)  ; Use teammate's function
                              scaled-value (* scale-factor original-value)]
-                           (println "  Scaling integer:" original-str "×" scale-factor "=" scaled-value)
-                           (list "number-s-integer" (str scaled-value)))
+                           (println "  Scaling number:" original-str "×" scale-factor "=" scaled-value)
+                           (list "number-s" (str scaled-value))
+                        )
 
 
                     ; Checks if it is a mixed fraction that needs to be converted 
