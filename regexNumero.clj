@@ -67,12 +67,15 @@
 (def rg-large (list "large" #"^large\b"))
 (def rg-to-taste (list "to-taste" #"^to\s+taste\b"))
 (def rg-for-dusting (list "for-dusting" #"^for\s+dusting\b"))
+(def rg-gram (list "gram" #"^grams?\b"))
+
 
 ;; Dictionary of numbers
 (def dict-numbers (list
-                   rg-nums-int
+                   rg-nums-mixed
                    rg-nums-frac
-                   rg-nums-mixed))
+                   rg-nums-int
+                   ))
 
 ;; Dictionary of ingredients
 (def dict-ingredients (list
@@ -137,7 +140,8 @@
                  rg-clove
                  rg-large
                  rg-to-taste
-                 rg-for-dusting))
+                 rg-for-dusting
+                 rg-gram))
 
 
 
@@ -259,7 +263,9 @@
       ;; Si es "tablespoon", retorna el factor tbsp-to-grams del ingrediente
       (= unit-type "tablespoon") (:tbsp-to-grams conversions)
       ;; Si no es ninguna unidad conocida, retorna 1.0 como default
+      (= unit-type "gram") 1.0 ;; Si se esta usandoa gramos, lo deja igual
       :else 1.0)))
+
 
 ; Convierte de unidades imperiales a gramos
 (defn convert-to-grams [amount ingredient-key unit-key]
@@ -293,7 +299,8 @@
         ;; Busca tokens de unidades de medida
         unit-token (or (find-token-type token-line "cup")
                        (find-token-type token-line "teaspoon")
-                       (find-token-type token-line "tablespoon"))
+                       (find-token-type token-line "tablespoon")
+                        (find-token-type token-line "gram"))
         ;; Busca cualquier token que empiece con "ingredient-"
         ingredient-token (find-token-by-prefix token-line "ingredient-")]
 
@@ -305,46 +312,58 @@
                        (numToInt (second quantity-token)))  ; Usa numToInt para otros tipos
             ingredient-key (first ingredient-token)]
         (if unit-token
-          (let [unit-key (first unit-token)
-                grams (convert-to-grams quantity ingredient-key unit-key)
-                calories (calculate-calories ingredient-key grams)]
-            ;; Retorna lista simple ("ingredient-sugar" 1.5 "cup" 301.295 1205.18)
-            (list ingredient-key quantity unit-key grams calories))
-          nil))
-      nil)))
+              (let [unit-key (first unit-token)
+                    ;; Para gramos, usar directamente la cantidad; para otras unidades, convertir
+                    grams (if (= unit-key "gram")
+                            quantity  ; Si ya está en gramos, usar directamente
+                            (convert-to-grams quantity ingredient-key unit-key))
+                    calories (calculate-calories ingredient-key grams)]
+                ;; Retorna lista simple ("ingredient-sugar" 1.5 "cup" 301.295 1205.18)
+                (list ingredient-key quantity unit-key grams calories))
+              ;; Si no hay unidad, asumir que es cantidad en gramos
+              (let [grams quantity
+                    calories (calculate-calories ingredient-key grams)]
+                (list ingredient-key quantity "gram" grams calories))))
+           nil)))
 
 
 (def test-line-1
-  (list ["number-mixed" "1"] ["cup" "cups"] ["ingredient-sugar" "granulated sugar"]))
+  (list ["number-mixed" "1 1/2"] ["cup" "cups"] ["ingredient-sugar" "granulated sugar"]))
 
 ;; ;; Caso 2: Con fracción
-;; (def test-line-2 
-;;   (list ["number-fraction" "3/4"] ["cup" "cup"] ["ingredient-flour" "all-purpose flour"]))
+(def test-line-2 
+  (list ["number-fraction" "3/4"] ["cup" "cup"] ["ingredient-flour" "all-purpose flour"]))
 
 ;; ;; Caso 3: Con teaspoons
-;; (def test-line-3 
-;;   (list ["number-integer" "2"] ["teaspoon" "teaspoons"] ["ingredient-salt" "sea salt"]))
+(def test-line-3 
+  (list ["number-integer" "2"] ["teaspoon" "teaspoons"] ["ingredient-salt" "sea salt"]))
 
 ;; ;; Caso 4: Sin unidad
-;; (def test-line-4 
-;;   (list ["ingredient-chocolate" "dark chocolate chips"]))
+(def test-line-4
+  (list ["number-integer" "50"] ["ingredient-chocolate" "dark chocolate chips"]))
 
 ;; ;; Caso 5: Sin ingrediente
-;; (def test-line-5 
-;;   (list ["number-integer" "2"] ["cup" "cups"]))
+(def test-line-5
+  (list ["number-integer" "100"] ["gram" "grams"] ["ingredient-flour" "flour"]))
+
+(def test-line-6
+  (list ["number-integer" "2"] ["cup" "cups"]))
 
 ;; Ejecutar pruebas
-;; (println "=== CASOS DE PRUEBA ===")
-;; (println "Caso 1 (completo):" (process-ingredient-line test-line-1))
+(println "=== CASOS DE PRUEBA ===")
+(println "Caso 1 (completo):" (process-ingredient-line test-line-1))
+;; la salida es ingrediente
 
 
-(def test-number "1 1/2")
-(println "String original:" test-number)
-(println (mixedFrac test-number))
-(println "Convertido con numToInt:" (numToInt test-number))
+;; (def test-number "1 1/2")
+;; ;; (println "String original:" test-number)
+;; (println(type (mixedFrac test-number)))
+;; (println "Convertido con numToInt:" (numToInt test-number))
 
-
-;; (println "Caso 2 (fracción):" (process-ingredient-line test-line-2))
-;; (println "Caso 3 (teaspoons):" (process-ingredient-line test-line-3))
-;; (println "Caso 4 (sin unidad):" (process-ingredient-line test-line-4))
-;; (println "Caso 5 (sin ingrediente):" (process-ingredient-line test-line-5))
+;; Caso 4: Sin unidad (asume gramos)
+;; Caso 5: Con gramos explícitos  
+;; Caso 6: Sin ingredient
+(println "Caso 2 (fracción):" (process-ingredient-line test-line-2))
+(println "Caso 3 (teaspoons):" (process-ingredient-line test-line-3))
+(println "Caso 4 (sin unidad):" (process-ingredient-line test-line-4))
+(println "Caso 5 (sin ingrediente):" (process-ingredient-line test-line-5))
