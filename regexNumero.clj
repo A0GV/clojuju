@@ -88,6 +88,7 @@
 (def rg-system-metric (list "system-metric" #"^metric\b"))
 (def rg-system-imperial (list "system-imperial" #"^imperial\b"))
 (def rg-inches (list "inches" #"^inches?\b"))
+(def rg-quote-inches (list "inches" #"^\"\b"))
 (def rg-in (list "in" #"^in\b"))
 ; Regex para tokens de usuario
 (def rg-user-metric (list "user-metric" #"^metric\b"))
@@ -169,11 +170,12 @@
                  rg-tablespoon
                  rg-ounce
                  rg-pint
-                 rg-lbs          
-                 rg-pounds       
-                 rg-lb           
-                 rg-inches       
-                 rg-in           
+                 rg-lbs
+                 rg-pounds
+                 rg-lb
+                 rg-inches
+                 rg-in
+                 rg-quote-inches
                  rg-dash
                  rg-clove
                  rg-large
@@ -326,9 +328,9 @@
   (cond
     ; Unidades de peso/masa
     (or (= unit-key "lb") (= unit-key "lbs") (= unit-key "pounds") (= unit-key "ounce")) "weight"
-    ; Unidades de longitud
+    ; Unidades de longitud - MODIFICADA para incluir comillas
     (or (= unit-key "in") (= unit-key "inches")) "length"
-    ; Unidades de volumen (líquidos) - se mantienen como están
+    ; Unidades de volumen (líquidos)
     (or (= unit-key "cup") (= unit-key "teaspoon") (= unit-key "tablespoon") (= unit-key "pint")) "volume"
     ; Gramos ya son métricos
     (= unit-key "gram") "metric"
@@ -377,6 +379,7 @@
       (or (= unit-type "lb") (= unit-type "lbs") (= unit-type "pounds")) (:lb-to-grams conversions)
       (= unit-type "ounce") (:oz-to-grams conversions)
       (= unit-type "pint") 473.176  ; 1 pint = 473.176 ml ≈ 473.176 g para líquidos
+      (or (= unit-type "in") (= unit-type "inches")) 1.0 
       (or (= unit-type "in") (= unit-type "inches")) 1.0
       :else 1.0)))                                              ; Caso por defecto
 
@@ -393,7 +396,6 @@
 (defn convert-to-metric [amount unit-key ingredient-key]
   (let [unit-category (get-unit-category unit-key)]
     (cond
-      ; Peso: convierte libras/onzas a gramos
       (= unit-category "weight")
       (cond
         (or (= unit-key "lb") (= unit-key "lbs") (= unit-key "pounds"))
@@ -401,24 +403,21 @@
         (= unit-key "ounce")
         {:amount (* amount 28.3495) :unit "gram"}
         :else {:amount amount :unit unit-key})
-      
-      ; Longitud: convierte pulgadas a centímetros
+
       (= unit-category "length")
       (cond
+        ; MODIFICADA: Ahora las comillas también se convierten a cm
         (or (= unit-key "in") (= unit-key "inches"))
         {:amount (* amount 2.54) :unit "cm"}
         :else {:amount amount :unit unit-key})
-      
-      ; VOLUMEN: convierte a gramos usando las conversiones específicas del ingrediente
+
       (= unit-category "volume")
       (let [grams-converted (convert-to-grams amount ingredient-key unit-key)]
         {:amount grams-converted :unit "gram"})
-      
-      ; Métrico: ya está en gramos
+
       (= unit-category "metric")
       {:amount amount :unit unit-key}
-      
-      ; Otros casos: se mantienen como están
+
       :else {:amount amount :unit unit-key})))
 
 ; Convierte de gramos a la unidad de salida especificada
@@ -578,4 +577,12 @@
         [["number-integer" "2"] ["lb" "lbs"] ["ingredient-ribeye" "ribeye steaks"]]
         [["number-fraction" "1/4"] ["cup" "cup"] ["ingredient-fresh-rosemary" "fresh rosemary"]]))
 
+
+; Ejemplo con comillas para inches
+(def test-with-quote-inches
+  (list [["r-system" "r-system"] ["system-metric" "metric"]]
+        [["number-integer" "8"] ["inches" "\""] ["ingredient-pasta" "pasta"]]        ; 8" → cm
+        [["number-fraction" "1/2"] ["inches" "\""] ["ingredient-pasta" "pasta"]]))   ; 1/2" → cm
+
+(println "Con comillas (inches):" (process-recipe-with-config test-with-quote-inches))
 (println "Con steaks:" (process-recipe-with-config test-with-steaks))
