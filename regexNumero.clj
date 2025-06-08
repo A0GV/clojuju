@@ -69,13 +69,22 @@
 (def rg-for-dusting (list "for-dusting" #"^for\s+dusting\b"))
 (def rg-gram (list "gram" #"^grams?\b"))
 
+; Regex para tokens de sistema
+(def rg-r-system (list "r-system" #"^r-system\b"))
+(def rg-system-metric (list "system-metric" #"^metric\b"))
+(def rg-system-imperial (list "system-imperial" #"^imperial\b"))
+
+; Regex para tokens de usuario
+(def rg-user-metric (list "user-metric" #"^metric\b"))
+(def rg-user-cup (list "user-cup" #"^cup\b"))
+(def rg-user-teaspoon (list "user-teaspoon" #"^teaspoon\b"))
+(def rg-user-tablespoon (list "user-tablespoon" #"^tablespoon\b"))
 
 ;; Dictionary of numbers
 (def dict-numbers (list
                    rg-nums-mixed
                    rg-nums-frac
-                   rg-nums-int
-                   ))
+                   rg-nums-int))
 
 ;; Dictionary of ingredients
 (def dict-ingredients (list
@@ -143,8 +152,15 @@
                  rg-for-dusting
                  rg-gram))
 
-
-
+;; Dictionary of system tokens
+(def dict-system (list
+                  rg-r-system
+                  rg-system-metric
+                  rg-system-imperial
+                  rg-user-metric
+                  rg-user-cup
+                  rg-user-teaspoon
+                  rg-user-tablespoon))
 
 (def ingredient-conversions
   {"ingredient-sugar" {:cup-to-grams 200.8634 :tsp-to-grams 4.184 :tbsp-to-grams 12.554}
@@ -172,6 +188,7 @@
    "ingredient-oregano" {:cup-to-grams 47.32 :tsp-to-grams 0.986 :tbsp-to-grams 2.958}
    "ingredient-paprika" {:cup-to-grams 134.8553 :tsp-to-grams 2.810 :tbsp-to-grams 8.428}
    "ingredient-parsley" {:cup-to-grams 61.5129 :tsp-to-grams 1.282 :tbsp-to-grams 3.845}})
+
 (def IngCal100
   {"ingredient-granulated-sugar" 400
    "ingredient-sugar" 400
@@ -227,143 +244,218 @@
    "ingredient-flat-leaf-parsley" 35.8
    "ingredient-parsley" 35.8})
 
-;; (println (get-in ingredient-conversions ["ingredient-sugar" :cup-to-grams]))
 
+; Función que calcula calorías basándose en gramos de ingrediente
 (defn calculate-calories [ingredient-token grams]
+  ; Busca las calorías por 100g del ingrediente en el diccionario IngCal100, si no existe devuelve 0
   (let [calories-per-100g (get IngCal100 ingredient-token 0)]
+    ; Calcula las calorías: (gramos ÷ 100) × calorías_por_100g
     (* (/ grams 100.0) calories-per-100g)))
-
-
-;; (println (calculate-calories "ingredient-flat-leaf-parsley" 50.5))
 
 ;; ========================================
 ;; FUNCIONES PARA PARSEAR LOS NUMEROS
 ;; ========================================
 
-
-;; Usa regex para encontrar dígitos y los convierte a entero
+; Convierte string a número usando read-string (funciona para enteros y fracciones)
 (defn numToInt [int-str]
   (read-string int-str))
 
 (defn mixedFrac [mixed-frac]
+  ; Divide el string por espacios: "1 1/2" → ["1", "1/2"], luego los pasa a numero y de ahi los suma
   (let [parts (clojure.string/split mixed-frac #" ")
         resp (+ (numToInt (first parts)) (numToInt (second parts)))]
     resp))
 
-; Obtiene el factor de conversión para un ingrediente específico
-(defn get-conversion [ingredient-key unit-type]
-  ;; Busca las conversiones del ingrediente en el mapa ingredient-conversions
-  (let [conversions (get ingredient-conversions ingredient-key)]
-    ;; Evalúa qué tipo de unidad es y retorna el factor correspondiente
-    (cond
-      ;; Si es "cup", retorna el factor cup-to-grams del ingrediente
-      (= unit-type "cup") (:cup-to-grams conversions)
-      ;; Si es "teaspoon", retorna el factor tsp-to-grams del ingrediente
-      (= unit-type "teaspoon") (:tsp-to-grams conversions)
-      ;; Si es "tablespoon", retorna el factor tbsp-to-grams del ingrediente
-      (= unit-type "tablespoon") (:tbsp-to-grams conversions)
-      ;; Si no es ninguna unidad conocida, retorna 1.0 como default
-      (= unit-type "gram") 1.0 ;; Si se esta usandoa gramos, lo deja igual
-      :else 1.0)))
+;; ========================================
+;; FUNCIONES PARA CONVERSIONES DE UNIDADES
+;; ========================================
 
-
-; Convierte de unidades imperiales a gramos
-(defn convert-to-grams [amount ingredient-key unit-key]
-  ;; Obtiene el factor de conversión llamando a get-conversion
-  (let [conversion-factor (get-conversion ingredient-key unit-key)]
-    ;; Si existe un factor de conversión, multiplica cantidad por factor
-    (if conversion-factor
-      (* amount conversion-factor)
-      amount))) ; Si no hay conversión, devuelve el valor original
+; Función para extraer configuración de salida de los tokens
 
 ; Busca el primer token de un tipo específico en una línea
 (defn find-token-type [token-line token-type]
-  ;; Filtra tokens que no sean nil Y cuyo primer elemento sea igual al tipo buscado
+  ; Filtra tokens que no sean nil Y que el primer elemento coincida con el tipo buscado
   (first (filter (fn [token] (and (not (nil? token)) (= (first token) token-type))) token-line)))
+
+; Extrae configuración de conversión de unidades de los tokens
+(defn extract-output-config [tokens]
+  ; Busca un token del tipo "r-system" en la línea
+  (let [r-system-token (find-token-type tokens "r-system")
+        ; Filtra tokens que empiecen con "user-" (user-metric, user-cup, etc.)
+        user-tokens (filter #(and (not (nil? %))
+                                  (clojure.string/starts-with? (str (first %)) "user-"))
+                            tokens)]
+    ; Si encuentra tanto r-system como tokens de usuario, crea la lista de configuracion
+    (if (and r-system-token (not (empty? user-tokens)))
+      (list (first r-system-token) (first (first user-tokens)))
+      nil)))
+
+; Obtiene la conversión para un ingrediente específico
+(defn get-conversion [ingredient-key unit-type]
+  ; Busca las conversiones del ingrediente en el diccionario ingredient-conversions
+  (let [conversions (get ingredient-conversions ingredient-key)]
+    ; Según el tipo de unidad, devuelve el correspondiente
+    (cond
+      (= unit-type "cup") (:cup-to-grams conversions)           ;cup → gramos
+      (= unit-type "teaspoon") (:tsp-to-grams conversions)      ;teaspoon → gramos
+      (= unit-type "tablespoon") (:tbsp-to-grams conversions)   ;tablespoon → gramos
+      (= unit-type "gram") 1.0                                  ; Si ya está en gramos, 1
+      :else 1.0)))                                              ; Caso por defecto
+
+; Convierte de unidades imperiales a gramos
+(defn convert-to-grams [amount ingredient-key unit-key]
+  ; Obtiene la conversion específica respecto el ingrediente y unidad
+  (let [conversion (get-conversion ingredient-key unit-key)]
+    ; Si existe conversión, multiplica cantidad × conversion
+    (if conversion
+      (* amount conversion)
+      amount)))                                                 ; Si no hay, devuelve cantidad original
+
+; Convierte de gramos a la unidad de salida especificada
+(defn convert-from-grams [grams ingredient-key target-unit]
+  ; Obtiene las conversiones disponibles para el ingrediente
+  (let [conversions (get ingredient-conversions ingredient-key)]
+    ; Según la unidad objetivo, aplica la conversión inversa
+    (cond
+      (= target-unit "user-metric") grams                       ; Si es métrico, mantiene gramos
+      (= target-unit "user-cup")                                ; Si quiere cups
+      (if-let [factor (:cup-to-grams conversions)]              ; Busca factor cup-to-grams
+        (/ grams factor)                                        ; Convierte: gramos ÷ factor = cups
+        grams)                                                  ; Si no hay factor, mantiene gramos
+      (= target-unit "user-teaspoon")                           ; Si quiere teaspoons
+      (if-let [factor (:tsp-to-grams conversions)]              ; Busca factor tsp-to-grams
+        (/ grams factor)                                        ; Convierte: gramos ÷ factor = teaspoons
+        grams)                                                  ; Si no hay factor, mantiene gramos
+      (= target-unit "user-tablespoon")                         ; Si quiere tablespoons
+      (if-let [factor (:tbsp-to-grams conversions)]             ; Busca factor tbsp-to-grams
+        (/ grams factor)                                        ; Convierte: gramos ÷ factor = tablespoons
+        grams)                                                  ; Si no hay factor, mantiene gramos
+      :else grams)))                                            ; Caso por defecto: mantiene gramos
+
+; Convierte el nombre de la unidad de salida para mostrar
+(defn get-output-unit-name [target-unit]
+  ; Mapea el token de configuración al nombre de unidad para mostrar
+  (cond
+    (= target-unit "user-metric") "gram"                        ; user-metric → "gram"
+    (= target-unit "user-cup") "cup"                           ; user-cup → "cup"
+    (= target-unit "user-teaspoon") "teaspoon"                 ; user-teaspoon → "teaspoon"
+    (= target-unit "user-tablespoon") "tablespoon"             ; user-tablespoon → "tablespoon"
+    :else "gram"))                                              ; Caso por defecto → "gram"
+
+
 
 ; Busca cualquier token que comience con un prefijo
 (defn find-token-by-prefix [token-line prefix]
-  ;; Filtra tokens aplicando dos condiciones:
+  ; Filtra tokens que no sean nil Y cuyo primer elemento empiece con el prefijo
   (first (filter (fn [token]
-                   ;; 1. El token no debe ser nil
                    (and (not (nil? token))
-                        ;; 2. El primer elemento del token debe empezar con el prefijo
                         (clojure.string/starts-with? (str (first token)) prefix)))
                  token-line)))
 
-(defn process-ingredient-line [token-line]
-  ;; Busca diferentes tipos de tokens numéricos (cantidad)
-  (let [quantity-token (or (find-token-type token-line "number-integer")
-                           (find-token-type token-line "number-fraction")
-                           (find-token-type token-line "number-mixed"))
-        ;; Busca tokens de unidades de medida
-        unit-token (or (find-token-type token-line "cup")
-                       (find-token-type token-line "teaspoon")
-                       (find-token-type token-line "tablespoon")
+; Función principal que maneja las conversiones de salida
+(defn process-ingredient-line
+  ;procesa línea con configuración opcional
+  ([token-line output-config]
+   ; Busca token de cantidad (entero, fracción o fracción mixta)
+   (let [quantity-token (or (find-token-type token-line "number-integer")
+                            (find-token-type token-line "number-fraction")
+                            (find-token-type token-line "number-mixed"))
+         ; Busca token de unidad (cup, teaspoon, tablespoon, gram)
+         unit-token (or (find-token-type token-line "cup")
+                        (find-token-type token-line "teaspoon")
+                        (find-token-type token-line "tablespoon")
                         (find-token-type token-line "gram"))
-        ;; Busca cualquier token que empiece con "ingredient-"
-        ingredient-token (find-token-by-prefix token-line "ingredient-")]
+         ; Busca token de ingrediente (cualquiera que empiece con "ingredient-")
+         ingredient-token (find-token-by-prefix token-line "ingredient-")]
 
-    ;; Verifica si tenemos al menos cantidad e ingrediente
-    (if (and quantity-token ingredient-token)
-      (let [;; Decide qué función usar según el tipo de token numérico
-            quantity (if (= (first quantity-token) "number-mixed")
-                       (mixedFrac (second quantity-token))  ; Llama a mixedFrac para fracciones mixtas
-                       (numToInt (second quantity-token)))  ; Usa numToInt para otros tipos
-            ingredient-key (first ingredient-token)]
-        (if unit-token
-              (let [unit-key (first unit-token)
-                    ;; Para gramos, usar directamente la cantidad; para otras unidades, convertir
-                    grams (if (= unit-key "gram")
-                            quantity  ; Si ya está en gramos, usar directamente
-                            (convert-to-grams quantity ingredient-key unit-key))
-                    calories (calculate-calories ingredient-key grams)]
-                ;; Retorna lista simple ("ingredient-sugar" 1.5 "cup" 301.295 1205.18)
-                (list ingredient-key quantity unit-key grams calories))
-              ;; Si no hay unidad, asumir que es cantidad en gramos
-              (let [grams quantity
-                    calories (calculate-calories ingredient-key grams)]
-                (list ingredient-key quantity "gram" grams calories))))
-           nil)))
+     ; Solo procesa si encuentra tanto cantidad como ingrediente
+     (if (and quantity-token ingredient-token)
+       ; Determina la cantidad numérica según el tipo de token
+       (let [quantity (if (= (first quantity-token) "number-mixed")
+                        (mixedFrac (second quantity-token))        ; Si es fracción mixta, usa mixedFrac
+                        (numToInt (second quantity-token)))        ; Si no, usa numToInt
+             ; Extrae el nombre del ingrediente (primer elemento del token)
+             ingredient-key (first ingredient-token)]
+         ; Si hay token de unidad, procesa con conversiones
+         (if unit-token
+           ; Extrae el tipo de unidad
+           (let [unit-key (first unit-token)
+                 ; Calcula gramos: si ya está en gramos usa cantidad directa, si no convierte
+                 grams (if (= unit-key "gram")
+                         quantity
+                         (convert-to-grams quantity ingredient-key unit-key))
+                 ; Calcula calorías basándose en los gramos
+                 calories (calculate-calories ingredient-key grams)]
 
+             ; Si hay configuración de salida, convertir según la unidad especificada
+             (if output-config
+               ; Extrae unidad deseada de la configuración
+               (let [target-unit (:target-unit output-config)
+                     ; Convierte gramos a la unidad deseada
+                     converted-amount (convert-from-grams grams ingredient-key target-unit)
+                     ; Obtiene nombre de unidad para mostrar
+                     output-unit-name (get-output-unit-name target-unit)]
+                 ; Retorna: [ingrediente, cantidad_convertida, unidad_salida, gramos, calorías]
+                 (list ingredient-key converted-amount output-unit-name grams calories))
+               ; Si no hay configuración, usar el comportamiento original
+               ; Retorna: [ingrediente, cantidad_original, unidad_original, gramos, calorías]
+               (list ingredient-key quantity unit-key grams calories)))
 
+           nil))
+       ; Si no encuentra cantidad E ingrediente, retorna nil
+       nil))))
+
+; Función para procesar una lista completa considerando tokens de configuración
+(defn process-recipe-with-config [token-lines]
+  ; Buscar configuración en la primera línea o en cualquier línea
+  (let [config-line (first (filter #(find-token-type % "r-system") token-lines))
+        ; Extrae configuración de salida si existe línea de configuración
+        output-config (when config-line (extract-output-config config-line))
+        ; Filtrar líneas que no son de configuración (tienen ingredientes pero no r-system)
+        ingredient-lines (filter #(and (find-token-by-prefix % "ingredient-")
+                                       (not (find-token-type % "r-system")))
+                                 token-lines)]
+
+    ; Procesar cada línea de ingrediente con la configuración encontrada
+    ; filter identity elimina los resultados nil
+    (filter identity (map #(process-ingredient-line % output-config) ingredient-lines))))
+;; ========================================
+;; EJEMPLOS DE USO
+;; ========================================
+
+; Ejemplo 1: Sin configuración de salida (comportamiento original)
 (def test-line-1
-  (list ["number-mixed" "1 1/2"] ["cup" "cups"] ["ingredient-sugar" "granulated sugar"]))
+  (list [["number-mixed" "1 1/2"] ["cup" "cups"] ["ingredient-sugar" "granulated sugar"]]
+        [["number-fraction" "5/4"] ["cup" "cup"] ["ingredient-flour" "all-purpose flour"]]
+        [["number-fraction" "8/4"] ["cup" "cup"] ["ingredient-flour" "all-purpose flour"]]))
 
-;; ;; Caso 2: Con fracción
-(def test-line-2 
-  (list ["number-fraction" "3/4"] ["cup" "cup"] ["ingredient-flour" "all-purpose flour"]))
+; Ejemplo 2: Con configuración para convertir a métrico (gramos)
+(def test-with-metric
+  (list [["r-system" "r-system"] ["user-metric" "metric"]]
+        [["number-integer" "2"] ["cup" "cups"] ["ingredient-sugar" "granulated sugar"]]
+        [["number-fraction" "3/4"] ["cup" "cup"] ["ingredient-flour" "all-purpose flour"]]))
 
-;; ;; Caso 3: Con teaspoons
-(def test-line-3 
-  (list ["number-integer" "2"] ["teaspoon" "teaspoons"] ["ingredient-salt" "sea salt"]))
+; Ejemplo 3: Con configuración para convertir a cups
+(def test-with-cups
+  (list [["r-system" "r-system"] ["user-cup" "cup"]]
+        [["number-integer" "500"] ["gram" "grams"] ["ingredient-sugar" "granulated sugar"]]
+        [["number-integer" "250"] ["gram" "grams"] ["ingredient-flour" "all-purpose flour"]]))
 
-;; ;; Caso 4: Sin unidad
-(def test-line-4
-  (list ["number-integer" "50"] ["ingredient-chocolate" "dark chocolate chips"]))
+; Ejemplo 4: Con configuración para convertir a teaspoons
+(def test-with-teaspoons
+  (list [["r-system" "r-system"] ["user-teaspoon" "teaspoon"]]
+        [["number-fraction" "1/4"] ["cup" "cup"] ["ingredient-sugar" "granulated sugar"]]
+        [["number-integer" "2"] ["tablespoon" "tablespoons"] ["ingredient-oil" "canola oil"]]))
 
-;; ;; Caso 5: Sin ingrediente
-(def test-line-5
-  (list ["number-integer" "100"] ["gram" "grams"] ["ingredient-flour" "flour"]))
-
-(def test-line-6
-  (list ["number-integer" "2"] ["cup" "cups"]))
+; Ejemplo 5: Con configuración para convertir a tablespoons
+(def test-with-tablespoons
+  (list [["r-system" "r-system"] ["user-tablespoon" "tablespoon"]]
+        [["number-integer" "6"] ["teaspoon" "teaspoons"] ["ingredient-vanilla" "vanilla extract"]]
+        [["number-fraction" "1/8"] ["cup" "cup"] ["ingredient-oil" "olive oil"]]))
 
 ;; Ejecutar pruebas
-(println "=== CASOS DE PRUEBA ===")
-(println "Caso 1 (completo):" (process-ingredient-line test-line-1))
-;; la salida es ingrediente
-
-
-;; (def test-number "1 1/2")
-;; ;; (println "String original:" test-number)
-;; (println(type (mixedFrac test-number)))
-;; (println "Convertido con numToInt:" (numToInt test-number))
-
-;; Caso 4: Sin unidad (asume gramos)
-;; Caso 5: Con gramos explícitos  
-;; Caso 6: Sin ingredient
-(println "Caso 2 (fracción):" (process-ingredient-line test-line-2))
-(println "Caso 3 (teaspoons):" (process-ingredient-line test-line-3))
-(println "Caso 4 (sin unidad):" (process-ingredient-line test-line-4))
-(println "Caso 5 (sin ingrediente):" (process-ingredient-line test-line-5))
+(println "=== EJEMPLOS DE CONVERSIÓN ===")
+(println "Con métrico:" (process-recipe-with-config test-with-metric))
+(println "Con cups:" (process-recipe-with-config test-with-cups))
+(println "Con teaspoons:" (process-recipe-with-config test-with-teaspoons))
+(println "Con tablespoons:" (process-recipe-with-config test-with-tablespoons))
