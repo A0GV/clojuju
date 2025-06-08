@@ -37,13 +37,13 @@
 
 ;; Recetas
 ; Regex para números enteros
-(def rg-nums-int (list "number-integer" #"^[0-9]+\b"))
+(def rg-nums-int (list "number-integer" #"^[0-9]+"))
 
 ; Regex para fracciones simples
-(def rg-nums-frac (list "number-fraction" #"^[0-9]+/[0-9]+\b"))
+(def rg-nums-frac (list "number-fraction" #"^[0-9]+/[0-9]+"))
 
 ; Regex para fracciones mixtas
-(def rg-nums-mixed (list "number-mixed" #"^[0-9]+\s+[0-9]+/[0-9]+\b"))
+(def rg-nums-mixed (list "number-mixed" #"^[0-9]+\s+[0-9]+/[0-9]+"))
 
 ; Regex para ingredientes (case sensitive)
 (def rg-sugar (list "ingredient-sugar" #"^\b(?:granulated\s+)?sugar\b"))
@@ -103,13 +103,17 @@
 (def rg-instruct (list "kw-instruct" #"^Instructions"))
 
 (def rg-dash (list "dash" #"^[-]"))
+(def rg-time-range (list "time-range" #"^[0-9]+\sto\s[0-9]+\sminutes"))
+(def rg-time-dash (list "time-range" #"^[0-9]+\-[0-9]+\sminutes"))
+(def rg-time-mention (list "time-mention" #"^[0-9]+\–*\s*(?:minutes|minute)"))
+(def rg-8x8 (list "w" #"^[0-9]x[0-9]"))
+
 
 ; Just stores words bcs it's annoying to deal w a lot of floating tokens
 (def rg-catch (list "w" #"[a-zA-Z]+"))
 
 ;; Dictionary of numbers
 (def dict-recipe (list
-
                    rg-nums-int
                    rg-nums-frac
                    rg-nums-mixed
@@ -164,8 +168,12 @@
                     rg-fract-in
 
                     ; Catch case
+                    rg-time-range
+                    rg-time-dash
+                    rg-time-mention
                     rg-catch
                     rg-dash
+                    rg-8x8
 
 ))
 
@@ -192,18 +200,36 @@
                 (let [
                     token-name (first regex-item) ; Gets the name of that token
                     rg-pattern  (second regex-item) ; Regex pattern
-                    matched-txt (re-find rg-pattern input-text)]  ; String that was matched (nil if not found)
+                    matched-txt (re-find rg-pattern input-text)  ; String that was matched (nil if not found)
+                    ]
+                    
                     
                     ; If nil, then just returns a false to later filter it out
                     ;(if (nil? matched-txt) false)
-                    (if matched-txt
+                    ;(if matched-txt
                         ; Did find a match, builds list of token name and 
-                        (list token-name matched-txt)
-                        nil)
+                    ;    (list token-name matched-txt)
+                    ;    nil)
+
+                    ; If found a match
+                    (if matched-txt
+                        (let [
+                            ; Finds position where match began
+                            match-pos (.indexOf input-text (str matched-txt)) ]
+                            ;(println "Token:" token-name "Match:" matched-txt "Position:" match-pos)
+
+                            ; If the match position is at the start, returns the token name and the match as a string
+                            (if (= match-pos 0)
+                                (list token-name matched-txt)
+                                nil)
+                        )
+                        ; Else just returns a null 
+                        nil)   
                 )
             )
         rg-dict)
     )
+    
 )
 
 ; Uses text from tokens to find which one is longest 
@@ -380,7 +406,7 @@
 )
 
 ; Processes line using result of whether user wants celcius
-(defn process-token-line [token-line user-temp-units user-num-portions]
+(defn process-token-line [token-line user-temp-units scale-factor]
     ;(println "Processing token-line")
     (if (seq token-line)
         (doall 
@@ -406,7 +432,27 @@
                     )
                         ; Calls funct to convert F -> C
                         (c-to-f (second token))
-                
+
+                    ; Checks if it is a number or simple fraction to convert 
+                    (and 
+                        (not (nil? token)) 
+                        (not (empty? token))
+                        ; If it is a 
+                        (= (first token) "number-integer")
+                    )
+                        ; Multiplies current amt by scale factor 
+                        ;(println "FRACTION " (first token) "value: " extract-num-value (second token) )
+                        ;(list "number-scaled" (* scale-factor (extract-num-value (second token))) )
+                        ;(list "number-s-integer" (str (* scale-factor (extract-num-value token))))
+                        (let [original-str (second token)  ; Get the string value
+                             original-value (numToInt original-str)  ; Use teammate's function
+                             scaled-value (* scale-factor original-value)]
+                           (println "  Scaling integer:" original-str "×" scale-factor "=" scaled-value)
+                           (list "number-s-integer" (str scaled-value)))
+
+
+                    ; Checks if it is a mixed fraction that needs to be converted 
+
                     ; Else it can just stay how it is
                     :else token
                 ))
@@ -451,7 +497,7 @@
         ; Process all tokenized lines
         (let [
             corrected-temp (doall (map 
-                (fn [token-line] (process-token-line token-line user-temp-units user-num-portions)) tokenized-lines))
+                (fn [token-line] (process-token-line token-line user-temp-units scale-factor)) tokenized-lines))
             ]
             
             ; Return updated recipe structure
@@ -548,6 +594,8 @@
                         (pmap process-chunk data-chunks)
                     )
                 )
+                ; Print the tokens
+                (doall (map (fn [x] (println (nth x 2)"\n\nNext Recipe Tokens:\n")) recipes-processed)) ; Check all the recipes 
 
                 ; Passes tokenized recipe and the tokens of user customization
                 (def fix-recipes (analyze-recipes recipes-processed opt-tokenized))
@@ -564,7 +612,7 @@
     ;(println (nth (first fix-recipes) 2) )
 
     ;(println (nth (map (first) fix-recipes) 2) )
-    (doall (map (fn [x] (println (nth x 2)"\n\nNext Recipe Tokens:\n")) fix-recipes)) ; Check all the recipes 
+    (doall (map (fn [x] (println (nth x 2)"\n\nFINAL Recipe Tokens:\n")) fix-recipes)) ; Check all the recipes 
 
 
 

@@ -1,4 +1,4 @@
 system: metric
 temp: C  
-portions: 4
+portions: 40
 filter: all
