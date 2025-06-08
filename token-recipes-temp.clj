@@ -82,6 +82,7 @@
 (def rg-large (list "large" #"\blarge\b"))
 (def rg-to-taste (list "to-taste" #"\bto\s+taste\b"))
 (def rg-for-dusting (list "for-dusting" #"\bfor\s+dusting\b"))
+(def rg-gram (list "gram" #"^grams?\b"))
 
 ;(def rg-phrases (list "phrases" #"^[a-zA-Z0-9 ,\.\(\)]+"))
 ; Other words 
@@ -104,7 +105,9 @@
 
 (def rg-dash (list "dash" #"^[-]"))
 (def rg-time-range (list "time-range" #"^[0-9]+\sto\s[0-9]+\sminutes"))
-(def rg-time-dash (list "time-range" #"^[0-9]+\-[0-9]+\sminutes"))
+(def rg-time-dash (list "time-range" #"^[0-9]+\-minute"))
+(def rg-time-dash-range (list "time-range" #"^[0-9]+\-[0-9]+\s+minutes?"))
+
 (def rg-time-mention (list "time-mention" #"^[0-9]+\–*\s*(?:minutes|minute)"))
 (def rg-8x8 (list "w" #"^[0-9]x[0-9]"))
 
@@ -154,6 +157,7 @@
                     rg-large
                     rg-to-taste
                     rg-for-dusting
+                    rg-gram
 
                     ; Adding
                     rg-serves
@@ -168,6 +172,7 @@
                     rg-fract-in
 
                     ; Catch case
+                    rg-time-dash-range
                     rg-time-range
                     rg-time-dash
                     rg-time-mention

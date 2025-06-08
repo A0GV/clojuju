@@ -37,13 +37,13 @@
 
 ;; Recetas
 ; Regex para números enteros
-(def rg-nums-int (list "number-integer" #"^[0-9]+\b"))
+(def rg-nums-int (list "number-integer" #"^[0-9]+"))
 
 ; Regex para fracciones simples
-(def rg-nums-frac (list "number-fraction" #"^[0-9]+/[0-9]+\b"))
+(def rg-nums-frac (list "number-fraction" #"^[0-9]+/[0-9]+"))
 
 ; Regex para fracciones mixtas
-(def rg-nums-mixed (list "number-mixed" #"^[0-9]+\s+[0-9]+/[0-9]+\b"))
+(def rg-nums-mixed (list "number-mixed" #"^[0-9]+\s+[0-9]+/[0-9]+"))
 
 ; Regex para ingredientes (case sensitive)
 (def rg-sugar (list "ingredient-sugar" #"^\b(?:granulated\s+)?sugar\b"))
@@ -82,6 +82,7 @@
 (def rg-large (list "large" #"\blarge\b"))
 (def rg-to-taste (list "to-taste" #"\bto\s+taste\b"))
 (def rg-for-dusting (list "for-dusting" #"\bfor\s+dusting\b"))
+(def rg-gram (list "gram" #"^grams?\b"))
 
 ;(def rg-phrases (list "phrases" #"^[a-zA-Z0-9 ,\.\(\)]+"))
 ; Other words 
@@ -103,13 +104,19 @@
 (def rg-instruct (list "kw-instruct" #"^Instructions"))
 
 (def rg-dash (list "dash" #"^[-]"))
+(def rg-time-range (list "time-range" #"^[0-9]+\sto\s[0-9]+\sminutes"))
+(def rg-time-dash (list "time-range" #"^[0-9]+\-minute"))
+(def rg-time-dash-range (list "time-range" #"^[0-9]+\-[0-9]+\s+minutes?"))
+
+(def rg-time-mention (list "time-mention" #"^[0-9]+\–*\s*(?:minutes|minute)"))
+(def rg-8x8 (list "w" #"^[0-9]x[0-9]"))
+
 
 ; Just stores words bcs it's annoying to deal w a lot of floating tokens
 (def rg-catch (list "w" #"[a-zA-Z]+"))
 
 ;; Dictionary of numbers
 (def dict-recipe (list
-
                    rg-nums-int
                    rg-nums-frac
                    rg-nums-mixed
@@ -150,6 +157,7 @@
                     rg-large
                     rg-to-taste
                     rg-for-dusting
+                    rg-gram
 
                     ; Adding
                     rg-serves
@@ -164,8 +172,13 @@
                     rg-fract-in
 
                     ; Catch case
+                    rg-time-dash-range
+                    rg-time-range
+                    rg-time-dash
+                    rg-time-mention
                     rg-catch
                     rg-dash
+                    rg-8x8
 
 ))
 
@@ -192,18 +205,36 @@
                 (let [
                     token-name (first regex-item) ; Gets the name of that token
                     rg-pattern  (second regex-item) ; Regex pattern
-                    matched-txt (re-find rg-pattern input-text)]  ; String that was matched (nil if not found)
+                    matched-txt (re-find rg-pattern input-text)  ; String that was matched (nil if not found)
+                    ]
+                    
                     
                     ; If nil, then just returns a false to later filter it out
                     ;(if (nil? matched-txt) false)
-                    (if matched-txt
+                    ;(if matched-txt
                         ; Did find a match, builds list of token name and 
-                        (list token-name matched-txt)
-                        nil)
+                    ;    (list token-name matched-txt)
+                    ;    nil)
+
+                    ; If found a match
+                    (if matched-txt
+                        (let [
+                            ; Finds position where match began
+                            match-pos (.indexOf input-text (str matched-txt)) ]
+                            ;(println "Token:" token-name "Match:" matched-txt "Position:" match-pos)
+
+                            ; If the match position is at the start, returns the token name and the match as a string
+                            (if (= match-pos 0)
+                                (list token-name matched-txt)
+                                nil)
+                        )
+                        ; Else just returns a null 
+                        nil)   
                 )
             )
         rg-dict)
     )
+    
 )
 
 ; Uses text from tokens to find which one is longest 
@@ -327,7 +358,7 @@
 )
 
 ;; SUB-FUNCTIONS FOR RECIPE CONVERSION
-; Extrae val numerico de val numerico given  
+; Extrae val numerico de temp given  
 (defn extract-num-value [num-string]
     (let [numeric-part (re-find #"\d+" num-string)]
         ; Returns num if it did match, 0 if it did not find the number
@@ -355,6 +386,16 @@
         (list "temp-F" (str f-value "°F")))
 )
 
+; Converts int or fraction to a numeric val
+(defn numToInt [int-str]
+  (read-string int-str))
+
+; Converts a mixed fraction to a number
+(defn mixedFrac [mixed-frac]
+  (let [parts (clojure.string/split mixed-frac #" ")
+        resp (+ (numToInt (first parts)) (numToInt (second parts)))]
+    resp))
+
 ;; COMPARISON TOKENS AGAINST USER PREFERENCES
 ; Check user wants cel
 (defn user-celsius-check [user-tokens]
@@ -370,7 +411,7 @@
 )
 
 ; Processes line using result of whether user wants celcius
-(defn process-token-line [token-line user-temp-units]
+(defn process-token-line [token-line user-temp-units scale-factor]
     ;(println "Processing token-line")
     (if (seq token-line)
         (doall 
@@ -396,7 +437,59 @@
                     )
                         ; Calls funct to convert F -> C
                         (c-to-f (second token))
-                
+
+                    ; Checks if it is a number or simple fraction to convert 
+                    (and 
+                        (not (nil? token)) 
+                        (not (empty? token))
+                        ; If it is a 
+                        (or (= (first token) "number-integer")
+                            (= (first token) "number-fraction")
+                        )
+                    )
+                        ; Multiplies current amt by scale factor 
+                        ;(println "FRACTION " (first token) "value: " extract-num-value (second token) )
+                        ;(list "number-scaled" (* scale-factor (extract-num-value (second token))) )
+                        ;(list "number-s-integer" (str (* scale-factor (extract-num-value token))))
+                        (let [
+                            original-str (second token)  ; Get the string value
+                            ; Convert a numero con adolf help
+                            original-value (numToInt original-str)  
+                            scaled-value (* scale-factor original-value)]
+                            (println "  Scaling number:" original-str "×" scale-factor "=" scaled-value)
+                            
+                            ; Structured list 
+                            (list "number-s" (str scaled-value))
+                        )
+
+                    ; Converting a mixed fraction 
+                    (and 
+                        (not (nil? token)) 
+                        (not (empty? token))
+                        ; If it is a mixed fraction
+                        (= (first token) "number-mixed")
+                    )
+                        (do
+                            (println "MIXED: " (second token))
+                            (let [
+                                ; Fraccion number
+                                original-str (second token) 
+                                mixed-value (mixedFrac original-str) ; A ver si funciona con lo de adolf
+                                scaled-value (* scale-factor mixed-value)
+                                ]
+
+                                ;(println "Proccessed: " mixed-value)
+
+                                (println "  Scaling mixed fraction:" mixed-value "×" scale-factor "=" scaled-value)
+                                
+                                ; Returns la lista con scaled mixed
+                                (list "number-s-mix" (str scaled-value))
+                            )
+                        )
+
+
+                    ; Checks if it is a mixed fraction that needs to be converted 
+
                     ; Else it can just stay how it is
                     :else token
                 ))
@@ -412,17 +505,36 @@
             recipe-name (first recipe)
             original-lines (second recipe)
             tokenized-lines (nth recipe 2)
-            
+
             ; Checks if user wants C
             user-temp-units (user-celsius-check user-options)
+            ; Extracts number of portions that user wants, need read-string to handle that it's a string
+            user-num-portions (read-string (second (second (nth user-options 2))) )
+
+            ; Find recipe number of servings from tokenized lines
+            recipe-serves 
+                ; Extracts number value
+                (extract-num-value
+                    ; Extract the token for serves 
+                    (second (first 
+                        (filter 
+                            (fn [token-line] (= (first token-line) "serves-amt")) 
+                        ; Need to flatten when looking for amt to take into account diff line skips and such
+                        (apply concat tokenized-lines)
+                        ))
+                    )
+                )
+
+            ; Amt to scale a recipe
+            scale-factor (/ user-num-portions recipe-serves)
         ]
         
-        (println "Processing recipe:" recipe-name "\n")
+        (println "Processing recipe:" recipe-name " with" recipe-serves " user wants  " user-num-portions "; scaled: " scale-factor "\n")
 
         ; Process all tokenized lines
         (let [
             corrected-temp (doall (map 
-                (fn [token-line] (process-token-line token-line user-temp-units)) tokenized-lines))
+                (fn [token-line] (process-token-line token-line user-temp-units scale-factor)) tokenized-lines))
             ]
             
             ; Return updated recipe structure
@@ -471,6 +583,10 @@
     (println "\n-------TOKENIZED")
     (println opt-tokenized)
 
+    ; looking for user preferences servings amt
+    (print "looking for servings: ")
+    (print (second (second (nth opt-tokenized 2))) )
+
     ; Leer recetas
     (println "\n-------READ RECIPES")
     (println (str "Procesando con archivo de opciones: " options-file))
@@ -484,6 +600,9 @@
     ;           "recipes/Pan-Seared Steak with Garlic Butter.txt"])
     (def ruta ["recipes/Best Homemade Brownies-1.txt"
                 "recipes/Chimichurri Sauce.txt" 
+                "recipes/Fettuccine Alfredo.txt"
+                "recipes/Lemon Cake-1.txt"
+                "recipes/Pan-Seared Steak with Garlic Butter.txt"
 
     ])
 
@@ -512,6 +631,8 @@
                         (pmap process-chunk data-chunks)
                     )
                 )
+                ; Print the tokens
+                (doall (map (fn [x] (println (nth x 2)"\n\nNext Recipe Tokens:\n")) recipes-processed)) ; Check all the recipes 
 
                 ; Passes tokenized recipe and the tokens of user customization
                 (def fix-recipes (analyze-recipes recipes-processed opt-tokenized))
@@ -521,7 +642,15 @@
 
     (println exec-time)
     (println "Fixed recipes")
-    (println fix-recipes)
+
+    ; Structure of recipes 
+    ;(println (nth (first fix-recipes) 0) )
+    ;(println (nth (first fix-recipes) 1) )
+    ;(println (nth (first fix-recipes) 2) )
+
+    ;(println (nth (map (first) fix-recipes) 2) )
+    (doall (map (fn [x] (println (nth x 2)"\n\nFINAL Recipe Tokens:\n")) fix-recipes)) ; Check all the recipes 
+
 
 
 
@@ -545,4 +674,6 @@
 ;(main "options1.txt" 6)
 ;(main "options1.txt" 10)
 
-(main "options1.txt" 2)
+(main "options1.txt" 1)
+
+(println "Mixed convert: "  (mixedFrac "1 1/2")) ; Test fraction to make sure its an int
