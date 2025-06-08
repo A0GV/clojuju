@@ -446,11 +446,40 @@
                         ;(println "FRACTION " (first token) "value: " extract-num-value (second token) )
                         ;(list "number-scaled" (* scale-factor (extract-num-value (second token))) )
                         ;(list "number-s-integer" (str (* scale-factor (extract-num-value token))))
-                        (let [original-str (second token)  ; Get the string value
-                             original-value (numToInt original-str)  ; Use teammate's function
-                             scaled-value (* scale-factor original-value)]
-                           (println "  Scaling number:" original-str "×" scale-factor "=" scaled-value)
-                           (list "number-s" (str scaled-value))
+                        (let [
+                            original-str (second token)  ; Get the string value
+                            ; Convert a numero con adolf help
+                            original-value (numToInt original-str)  
+                            scaled-value (* scale-factor original-value)]
+                            (println "  Scaling number:" original-str "×" scale-factor "=" scaled-value)
+                            
+                            ; Structured list 
+                            (list "number-s" (str scaled-value))
+                        )
+
+                    ; Converting a mixed fraction 
+                    (and 
+                        (not (nil? token)) 
+                        (not (empty? token))
+                        ; If it is a mixed fraction
+                        (= (first token) "number-mixed")
+                    )
+                        (do
+                            (println "MIXED: " (second token))
+                            (let [
+                                ; Fraccion number
+                                original-str (second token) 
+                                mixed-value (mixedFrac original-str) ; A ver si funciona con lo de adolf
+                                scaled-value (* scale-factor mixed-value)
+                                ]
+
+                                ;(println "Proccessed: " mixed-value)
+
+                                (println "  Scaling mixed fraction:" mixed-value "×" scale-factor "=" scaled-value)
+                                
+                                ; Returns la lista con scaled mixed
+                                (list "number-s-mix" (str scaled-value))
+                            )
                         )
 
 
@@ -642,4 +671,4 @@
 
 (main "options1.txt" 1)
 
-(println "Mixed convert: " (string? (mixedFrac "1 1/2"))) ; Test fraction to make sure its an int
+(println "Mixed convert: "  (mixedFrac "1 1/2")) ; Test fraction to make sure its an int
