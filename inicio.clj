@@ -667,7 +667,7 @@
         tokenized-lines (nth recipe 2)
 
             ; Checks if user wants C
-        user-temp-units (user-celsius-check user-options)
+        user-temp-units (= "C" (second (second (second user-options))))
             ; Extracts number of portions that user wants, need read-string to handle that it's a string
         user-num-portions (read-string (second (second (nth user-options 2))))
 
@@ -684,7 +684,7 @@
 
             ; Amt to scale a recipe
         scale-factor (/ user-num-portions recipe-serves)]
-
+        (println "TEMP ADJ (F FALSE C TRUE): " user-temp-units)
     (println "Processing recipe:" recipe-name " with" recipe-serves " user wants  " user-num-portions "; scaled: " scale-factor "\n")
 
         ; Process all tokenized lines
