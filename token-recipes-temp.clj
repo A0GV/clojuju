@@ -88,6 +88,9 @@
 ; Other words 
 (def rg-serves (list "serves-amt" #"^(?:Serves\s*-\s*|Servings\s*-\s*)[0-9]+"))
 
+(def rg-temp-f-range (list "temp-f-range" #"^[0-9]+°F\s*-\s*[0-9]+°F")) 
+(def rg-temp-c-range (list "temp-c-range" #"^[0-9]+°C\s*-\s*[0-9]+°C")) 
+
 (def rg-temp-c (list "temp-C" #"^[0-9]+°C"))
 (def rg-temp-f (list "temp-F" #"^[0-9]+°F"))
 
@@ -99,8 +102,7 @@
 (def rg-step-num (list "step-num" #"^[0-9]+\."))
 (def rg-fract-in (list "fract-in" #"[0-9]+/[0-9]+\""))
 
-; Keywords 
-(def rg-ingredients (list "kw-ingredient" #"^Ingredients(\:)*"))
+(def rg-ingredients (list "kw-ingredient" #"^Ingredients(?:\:)*"))
 (def rg-instruct (list "kw-instruct" #"^Instructions"))
 
 (def rg-dash (list "dash" #"^[-]"))
@@ -161,7 +163,9 @@
 
                     ; Adding
                     rg-serves
-                    rg-temp-c rg-temp-f
+                    ; Temperatures
+                    rg-temp-f-range rg-temp-c-range ; First to check for ranges 
+                    rg-temp-c rg-temp-f ; THen just ind temp mentions
                     ; Time mentions 
                     rg-pt rg-ct rg-tt
 
@@ -397,19 +401,6 @@
     resp))
 
 ;; COMPARISON TOKENS AGAINST USER PREFERENCES
-; Check user wants cel
-(defn user-celsius-check [user-tokens]
-    ; Some token among the options txt is t-cel
-    (some 
-        ; Checks token is not null and that the first val is t-cel
-        (fn [token-line] 
-            (some 
-                (fn [token] (and (not (nil? token)) (= (first token) "t-cel"))) 
-            token-line)
-        )
-    user-tokens)
-)
-
 ; Processes line using result of whether user wants celcius
 (defn process-token-line [token-line user-temp-units scale-factor]
     ;(println "Processing token-line")
@@ -507,7 +498,9 @@
             tokenized-lines (nth recipe 2)
 
             ; Checks if user wants C
-            user-temp-units (user-celsius-check user-options)
+            user-temp-units1 (second (second (second user-options))) ; Check if C or F
+            user-temp-units2 (= "C" (second (second (second user-options))))
+
             ; Extracts number of portions that user wants, need read-string to handle that it's a string
             user-num-portions (read-string (second (second (nth user-options 2))) )
 
@@ -528,13 +521,14 @@
             ; Amt to scale a recipe
             scale-factor (/ user-num-portions recipe-serves)
         ]
+        (println "USER TEMP UNITS " user-temp-units1 user-temp-units2)
         
         (println "Processing recipe:" recipe-name " with" recipe-serves " user wants  " user-num-portions "; scaled: " scale-factor "\n")
 
         ; Process all tokenized lines
         (let [
             corrected-temp (doall (map 
-                (fn [token-line] (process-token-line token-line user-temp-units scale-factor)) tokenized-lines))
+                (fn [token-line] (process-token-line token-line user-temp-units2 scale-factor)) tokenized-lines))
             ]
             
             ; Return updated recipe structure
