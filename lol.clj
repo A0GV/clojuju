@@ -147,7 +147,9 @@
 (def rg-fract-in (list "fract-in" #"[0-9]+/[0-9]+\""))
 
 ; Keywords 
-(def rg-ingredients (list "kw-ingredient" #"^Ingredients(\:)*"))
+(def rg-equip (list "kw-equip" #"^Equipment(?:\:)*"))
+(def rg-category (list "kw-category" #"^Category(?:\:)*"))
+(def rg-ingredients (list "kw-ingredient" #"^Ingredients(?:\:)*"))
 (def rg-instruct (list "kw-instruct" #"^Instructions"))
 
 (def rg-dash (list "dash" #"^[-]"))
@@ -261,9 +263,10 @@
 
                     ; Keywords 
                   rg-ingredients rg-instruct
-
+                  rg-equip
                   rg-step-num
                   rg-fract-in
+                  rg-category
 
                     ; Catch case
                   rg-time-dash-range
