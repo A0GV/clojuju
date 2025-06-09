@@ -1,5 +1,5 @@
 (println "¡Hola, mundo!")
-(require '[clojure.java.io :as io]) 
+(require '[clojure.java.io :as io])
 (require '[clojure.string :as str]) ; To trim string
 
 ; Definiciones de regex
@@ -203,7 +203,7 @@
                   rg-fresh-rosemary
                   rg-ground-almonds
 
-                    ;; Ingredientes generales después
+                  ;; Ingredientes generales después
                   rg-sugar
                   rg-flour
                   rg-cocoa
@@ -374,13 +374,34 @@
    "ingredient-rosemary" 131
    "ingredient-ground-almonds" 579})
 
+(def non-volume-ingredients
+  #{"ingredient-eggs" "ingredient-garlic-clove" "ingredient-chicken"})
+
+; Lista de unidades que NO deben convertirse a cups
+(def non-volume-units
+  #{"large" "medium" "small" "clove" "cloves" "piece" "pieces"
+    "inches" "in"})
+
+
+
+(defn should-convert-to-volume? [ingredient-key unit-key target-unit]
+  (and (not (contains? non-volume-ingredients ingredient-key))
+       (cond
+         ; Si el sistema es métrico, permitir conversión de peso
+         (= target-unit "auto-metric")
+         (not (contains? #{"large" "medium" "small" "clove" "cloves" "piece" "pieces"} unit-key))
+
+         ; Para otros sistemas, mantener lógica original
+         :else
+         (not (contains? non-volume-units unit-key)))))
+
+
+
 ;; FILE READING
 ; Funct to read file line by line
 (defn read-file-lines [file-path]
-    (with-open [reader (io/reader file-path)]
-        (doall (line-seq reader))
-   )
-)
+  (with-open [reader (io/reader file-path)]
+    (doall (line-seq reader))))
 
 ; TOKENIZACIÓN
 ; Finds all matches for item in regex given input text and corresponding dictionary
@@ -388,19 +409,18 @@
     ;(println "All matches!")
     ;(display "Input text: " input-text)
 
-    (filter
+  (filter
         ; Keep only defs that are not false 
-        (fn [match-result] (not (nil? match-result)))
+   (fn [match-result] (not (nil? match-result)))
         ; And now compare against every item in the specified dictionary
-        (map
-            (fn [regex-item]
-                (let [
-                    token-name (first regex-item) ; Gets the name of that token
-                    rg-pattern  (second regex-item) ; Regex pattern
-                    matched-txt (re-find rg-pattern input-text)  ; String that was matched (nil if not found)
-                    ]
-                    
-                    
+   (map
+    (fn [regex-item]
+      (let [token-name (first regex-item) ; Gets the name of that token
+            rg-pattern  (second regex-item) ; Regex pattern
+            matched-txt (re-find rg-pattern input-text)  ; String that was matched (nil if not found)
+            ]
+
+
                     ; If nil, then just returns a false to later filter it out
                     ;(if (nil? matched-txt) false)
                     ;(if matched-txt
@@ -409,118 +429,91 @@
                     ;    nil)
 
                     ; If found a match
-                    (if matched-txt
-                        (let [
-                            ; Finds position where match began
-                            match-pos (.indexOf input-text (str matched-txt)) ]
+        (if matched-txt
+          (let [; Finds position where match began
+                match-pos (.indexOf input-text (str matched-txt))]
                             ;(println "Token:" token-name "Match:" matched-txt "Position:" match-pos)
 
                             ; If the match position is at the start, returns the token name and the match as a string
-                            (if (= match-pos 0)
-                                (list token-name matched-txt)
-                                nil)
-                        )
+            (if (= match-pos 0)
+              (list token-name matched-txt)
+              nil))
                         ; Else just returns a null 
-                        nil)   
-                )
-            )
-        rg-dict)
-    )
-    
-)
+          nil)))
+    rg-dict)))
 
 ; Uses text from tokens to find which one is longest 
 (defn get-max-len [match-list]
     ;(println "Get maximum length string of all of the matches")
-    (apply max
-        (map
-           (fn [match] (count (second match)))
-        match-list)
-    )
-)
+  (apply max
+         (map
+          (fn [match] (count (second match)))
+          match-list)))
 
 ; Uses item matched from list and keeps only the one that meets the longest length found  
 (defn filter-max [matches max-len]
     ;(println "Keeping only the longest one")
-    (filter
-        (fn [match] 
-            (= (count (second match)) max-len)
-        ) matches
-    )
-)
+  (filter
+   (fn [match]
+     (= (count (second match)) max-len)) matches))
 
 ; Finds the longest matched token of the current item being read
 (defn longest-match [input-item rg-dict]
-    (let [all-found-matches (all-matches input-item rg-dict)]
-        (cond
+  (let [all-found-matches (all-matches input-item rg-dict)]
+    (cond
             ; Did not find a match, returns an unregognized for symbol
-            (empty? all-found-matches) (list "NA" (subs input-item 0 1)) 
+      (empty? all-found-matches) (list "NA" (subs input-item 0 1))
 
             ; Only one match, just returns that one 
-            (= 1 (count all-found-matches)) (first all-found-matches)
+      (= 1 (count all-found-matches)) (first all-found-matches)
 
             ; Else finds the longest match of those found 
-            :else 
+      :else
                 ; Finds longest match 
-                (let [
-                    longest-len (get-max-len all-found-matches)
-                    longest-matches (filter-max all-found-matches longest-len)
-                    ]
+      (let [longest-len (get-max-len all-found-matches)
+            longest-matches (filter-max all-found-matches longest-len)]
 
                     ; Once found, body just returns thel ongest one
-                    (first longest-matches)
-                )
-        )
-    )
-)
+        (first longest-matches)))))
 
 ; Keeps the longest match
 (defn tokenize [input rg-dict]
     ;(println "Using dictionary\n" dict-user)
     ;(println "Reading: " input)
     ; Base case input empty
-    (cond
-        (zero? (count (str/trim input)))
+  (cond
+    (zero? (count (str/trim input)))
         ;(count (str/trim input)) ; Returns length of trimmed 
-        '() ; Returns done list
-    :else 
+    '() ; Returns done list
+    :else
         ; List of token and matched substring 
-        (let [
-            input-trim (str/trim input) ; Para hacer llamadas, ya quita los empty spaces
+    (let [input-trim (str/trim input) ; Para hacer llamadas, ya quita los empty spaces
 
             ; Head de variables 
-            type-txtmatch (longest-match input-trim rg-dict)
+          type-txtmatch (longest-match input-trim rg-dict)
             ; Builds the substring
-            extracted-txt (second type-txtmatch) ; Finds the token text
-            length (count extracted-txt) ; Counts how long the token text is
+          extracted-txt (second type-txtmatch) ; Finds the token text
+          length (count extracted-txt) ; Counts how long the token text is
 
             ; Finds pos of match starting
-            pos-match-start (.indexOf input-trim extracted-txt)
+          pos-match-start (.indexOf input-trim extracted-txt)
 
             ; For recursive to start at next element (excluding whitespace)
             ;rest-input (subs input-trim length)
-            rest-input (if (= "NA" (first type-txtmatch))
+          rest-input (if (= "NA" (first type-txtmatch))
                 ; NA case: longest-match already took 1 char, so skip 1 char
-                (str/trim (subs input-trim 1))
+                       (str/trim (subs input-trim 1))
                 ; Match found: skip past the entire matched text
-                (str/trim (subs input-trim (+ pos-match-start length)))
-            )
-
-            ]
+                       (str/trim (subs input-trim (+ pos-match-start length))))]
             ; Ahora el body para build list 
-            (cons 
-                (list (first type-txtmatch) extracted-txt)
-                (tokenize rest-input rg-dict)
-            )
-        )
-    )
-)
+      (cons
+       (list (first type-txtmatch) extracted-txt)
+       (tokenize rest-input rg-dict)))))
 
 ;; RECIPE HANDLING
 ; Recieves the chunk (aka the list of file paths) 
 (defn process-recipe [file-path]
-    (let [
-        ; Read file lines w reader
+  (let [; Read file lines w reader
         raw-lines (with-open [reader (io/reader file-path)] (doall (line-seq reader)))
         ; Converts lines to list to have same format as options
         recipe-lines (map list raw-lines)
@@ -528,55 +521,44 @@
         ; cant have prints in lets (println "\n-------RECIPE LINES\n" recipe-lines)
 
         ; Tokenizar las líneas
-        tokenized-lines (doall (map (fn [current-line] 
+        tokenized-lines (doall (map (fn [current-line]
                             ; Proccesses line recipe if it is not empty 
-                            (if (not (empty? (str/trim (first current-line))))
-                                (tokenize (first current-line) dict-recipe) ; Tokenize call
-                                '() ; List is empty
-                            )
-                        ) recipe-lines) )
-        ]
+                                      (if (not (empty? (str/trim (first current-line))))
+                                        (tokenize (first current-line) dict-recipe) ; Tokenize call
+                                        '() ; List is empty
+                                        ))recipe-lines))]
         ; Returns list w file name, original lines just in case, and tokenized lines 
         ;(println "\n\n\n")
-        (println "Tokenized lines:" tokenized-lines)
-        (list file-path recipe-lines tokenized-lines)
-    )
-)
+    (println "Tokenized lines:" tokenized-lines)
+    (list file-path recipe-lines tokenized-lines)))
 
 ; Recieves a chunk of recipes and then tokenizes the recipe
 (defn process-chunk [chunk]
-    (println "Processing: " chunk)
-    (doall (map process-recipe chunk))
-)
+  (println "Processing: " chunk)
+  (doall (map process-recipe chunk)))
 
 ;; SUB-FUNCTIONS FOR RECIPE CONVERSION
 ; Extrae val numerico de temp given  
 (defn extract-num-value [num-string]
-    (let [numeric-part (re-find #"\d+" num-string)]
+  (let [numeric-part (re-find #"\d+" num-string)]
         ; Returns num if it did match, 0 if it did not find the number
-        (if numeric-part (Integer/parseInt numeric-part) 0)
-    )
-)
+    (if numeric-part (Integer/parseInt numeric-part) 0)))
 
 ; Converts far to cel and returns it as a token C = (F - 32) / (9 / 5)
 (defn f-to-c [f-temp-string]
-    (let [
-            ; Calls helper funct to convert farenheit 
-            f-value (extract-num-value f-temp-string)
-            c-value (/ (* (- f-value 32) 5) 9.0) ; Plugs into eq
+  (let [; Calls helper funct to convert farenheit 
+        f-value (extract-num-value f-temp-string)
+        c-value (/ (* (- f-value 32) 5) 9.0) ; Plugs into eq
         ]
-        (list "temp-C" (str c-value "°C")))
-)
+    (list "temp-C" (str c-value "°C"))))
 
 ; Converts far to cel and returns it as a token F = (C * (9 / 5)) +32
 (defn c-to-f [c-temp-string]
-    (let [
-            ; Calls helper funct to convert farenheit 
-            c-value (extract-num-value c-temp-string)
-            f-value (+ (* c-value (/ 9 5)) 32) ; Plugs into eq
+  (let [; Calls helper funct to convert farenheit 
+        c-value (extract-num-value c-temp-string)
+        f-value (+ (* c-value (/ 9 5)) 32) ; Plugs into eq
         ]
-        (list "temp-F" (str f-value "°F")))
-)
+    (list "temp-F" (str f-value "°F"))))
 
 ; Converts int or fraction to a numeric val
 (defn numToInt [int-str]
@@ -592,248 +574,825 @@
 ; Check user wants cel
 (defn user-celsius-check [user-tokens]
     ; Some token among the options txt is t-cel
-    (some 
+  (some
         ; Checks token is not null and that the first val is t-cel
-        (fn [token-line] 
-            (some 
-                (fn [token] (and (not (nil? token)) (= (first token) "t-cel"))) 
-            token-line)
-        )
-    user-tokens)
-)
+   (fn [token-line]
+     (some
+      (fn [token] (and (not (nil? token)) (= (first token) "t-cel")))
+      token-line))
+   user-tokens))
 
 ; Processes line using result of whether user wants celcius
 (defn process-token-line [token-line user-temp-units scale-factor]
     ;(println "Processing token-line")
-    (if (seq token-line)
-        (doall 
-            (map (fn [token]
+  (if (seq token-line)
+    (doall
+     (map (fn [token]
                 ; Recipe token is currently set to F and user wants C
-                (cond 
+            (cond
                     ; Checks recipe F, user C
-                    (and 
-                        (not (nil? token)) 
-                        (not (empty? token))
-                        (= (first token) "temp-F") 
-                        user-temp-units
-                    )
+              (and
+               (not (nil? token))
+               (not (empty? token))
+               (= (first token) "temp-F")
+               user-temp-units)
                         ; Need to convert F to C, calls funct
-                        (f-to-c (second token))
-                    
+              (f-to-c (second token))
+
                     ; Checks recipe C, user F
-                    (and 
-                        (not (nil? token)) 
-                        (not (empty? token))
-                        (= (first token) "temp-C") 
-                        (not user-temp-units) ; False = Farenheit
-                    )
+              (and
+               (not (nil? token))
+               (not (empty? token))
+               (= (first token) "temp-C")
+               (not user-temp-units) ; False = Farenheit
+               )
                         ; Calls funct to convert F -> C
-                        (c-to-f (second token))
+              (c-to-f (second token))
 
                     ; Checks if it is a number or simple fraction to convert 
-                    (and 
-                        (not (nil? token)) 
-                        (not (empty? token))
+              (and
+               (not (nil? token))
+               (not (empty? token))
                         ; If it is a 
-                        (or (= (first token) "number-integer")
-                            (= (first token) "number-fraction")
-                        )
-                    )
+               (or (= (first token) "number-integer")
+                   (= (first token) "number-fraction")))
                         ; Multiplies current amt by scale factor 
                         ;(println "FRACTION " (first token) "value: " extract-num-value (second token) )
                         ;(list "number-scaled" (* scale-factor (extract-num-value (second token))) )
                         ;(list "number-s-integer" (str (* scale-factor (extract-num-value token))))
-                        (let [
-                            original-str (second token)  ; Get the string value
+              (let [original-str (second token)  ; Get the string value
                             ; Convert a numero con adolf help
-                            original-value (numToInt original-str)  
-                            scaled-value (* scale-factor original-value)]
-                            (println "  Scaling number:" original-str "×" scale-factor "=" scaled-value)
-                            
+                    original-value (numToInt original-str)
+                    scaled-value (* scale-factor original-value)]
+                (println "  Scaling number:" original-str "×" scale-factor "=" scaled-value)
+
                             ; Structured list 
-                            (list "number-s" (str scaled-value))
-                        )
+                (list "number-s" (str scaled-value)))
 
                     ; Converting a mixed fraction 
-                    (and 
-                        (not (nil? token)) 
-                        (not (empty? token))
+              (and
+               (not (nil? token))
+               (not (empty? token))
                         ; If it is a mixed fraction
-                        (= (first token) "number-mixed")
-                    )
-                        (do
-                            (println "MIXED: " (second token))
-                            (let [
-                                ; Fraccion number
-                                original-str (second token) 
-                                mixed-value (mixedFrac original-str) ; A ver si funciona con lo de adolf
-                                scaled-value (* scale-factor mixed-value)
-                                ]
+               (= (first token) "number-mixed"))
+              (do
+                (println "MIXED: " (second token))
+                (let [; Fraccion number
+                      original-str (second token)
+                      mixed-value (mixedFrac original-str) ; A ver si funciona con lo de adolf
+                      scaled-value (* scale-factor mixed-value)]
 
                                 ;(println "Proccessed: " mixed-value)
 
-                                (println "  Scaling mixed fraction:" mixed-value "×" scale-factor "=" scaled-value)
-                                
+                  (println "  Scaling mixed fraction:" mixed-value "×" scale-factor "=" scaled-value)
+
                                 ; Returns la lista con scaled mixed
-                                (list "number-s-mix" (str scaled-value))
-                            )
-                        )
+                  (list "number-s-mix" (str scaled-value))))
 
 
                     ; Checks if it is a mixed fraction that needs to be converted 
 
                     ; Else it can just stay how it is
-                    :else token
-                ))
-            token-line)) 
-        '("\t" "\t")) ; It is not a sequence
+              :else token))
+          token-line))
+    '("\t" "\t")) ; It is not a sequence
     ;)
-)
+  )
 
 ; Main function to manipulate one recipe at a time based on user preferences
 (defn manipulate-recipe [recipe user-options]
-    (println "\n------- BEGIN MANIPULATION -------")
-    (let [
-            recipe-name (first recipe)
-            original-lines (second recipe)
-            tokenized-lines (nth recipe 2)
+  (println "\n------- BEGIN MANIPULATION -------")
+  (let [recipe-name (first recipe)
+        original-lines (second recipe)
+        tokenized-lines (nth recipe 2)
 
             ; Checks if user wants C
-            user-temp-units (user-celsius-check user-options)
+        user-temp-units (user-celsius-check user-options)
             ; Extracts number of portions that user wants, need read-string to handle that it's a string
-            user-num-portions (read-string (second (second (nth user-options 2))) )
+        user-num-portions (read-string (second (second (nth user-options 2))))
 
             ; Find recipe number of servings from tokenized lines
-            recipe-serves 
+        recipe-serves
                 ; Extracts number value
-                (extract-num-value
+        (extract-num-value
                     ; Extract the token for serves 
-                    (second (first 
-                        (filter 
-                            (fn [token-line] (= (first token-line) "serves-amt")) 
+         (second (first
+                  (filter
+                   (fn [token-line] (= (first token-line) "serves-amt"))
                         ; Need to flatten when looking for amt to take into account diff line skips and such
-                        (apply concat tokenized-lines)
-                        ))
-                    )
-                )
+                   (apply concat tokenized-lines)))))
 
             ; Amt to scale a recipe
-            scale-factor (/ user-num-portions recipe-serves)
-        ]
-        
-        (println "Processing recipe:" recipe-name " with" recipe-serves " user wants  " user-num-portions "; scaled: " scale-factor "\n")
+        scale-factor (/ user-num-portions recipe-serves)]
+
+    (println "Processing recipe:" recipe-name " with" recipe-serves " user wants  " user-num-portions "; scaled: " scale-factor "\n")
 
         ; Process all tokenized lines
-        (let [
-            corrected-temp (doall (map 
-                (fn [token-line] (process-token-line token-line user-temp-units scale-factor)) tokenized-lines))
-            ]
-            
+    (let [corrected-temp (doall (map
+                                 (fn [token-line] (process-token-line token-line user-temp-units scale-factor)) tokenized-lines))]
+
             ; Return updated recipe structure
-            (list recipe-name original-lines corrected-temp)
-        )
-    )
-)
+      (list recipe-name original-lines corrected-temp))))
+
+;; ========================================
+;; Inicio de conversiones
+;; ========================================
+
+; Función que calcula calorías basándose en gramos de ingrediente
+(defn calculate-calories [ingredient-token grams]
+  ; Busca las calorías por 100g del ingrediente en el diccionario IngCal100, si no existe devuelve 0
+  (let [calories-per-100g (get IngCal100 ingredient-token 0)]
+    ; Calcula las calorías: (gramos ÷ 100) × calorías_por_100g
+    (* (/ grams 100.0) calories-per-100g)))
+
+;; ========================================
+;; CÁLCULO DE CALORÍAS
+;; ========================================
+
+; Calcula las calorías totales de un ingrediente basándose en su peso en gramos
+; Utiliza el diccionario IngCal100 que contiene calorías por cada 100g del ingrediente
+(defn calculate-calories [ingredient-token grams]
+  ; Busca las calorías por 100g del ingrediente en el diccionario IngCal100, si no existe devuelve 0
+  (let [calories-per-100g (get IngCal100 ingredient-token 0)]
+    ; Calcula las calorías: (gramos ÷ 100) × calorías_por_100g
+    (* (/ grams 100.0) calories-per-100g)))
+
+;; ========================================
+;; CLASIFICACIÓN DE UNIDADES DE MEDIDA
+;; ========================================
+
+; Clasifica las unidades de medida en categorías para facilitar las conversiones
+; Divide en: peso (weight), longitud (length), volumen (volume), métrico (metric) y otros (other)
+(defn get-unit-category [unit-key]
+  (cond
+    ; Si la unidad es libra, libras, pounds u onza → categoría "weight" (peso)
+    (or (= unit-key "lb") (= unit-key "lbs") (= unit-key "pounds") (= unit-key "ounce")) "weight"
+    ; Si la unidad es pulgadas → categoría "length" (longitud)
+    (or (= unit-key "in") (= unit-key "inches")) "length"
+    ; Si la unidad es taza, cucharadita, cucharada o pinta → categoría "volume" (volumen)
+    (or (= unit-key "cup") (= unit-key "teaspoon") (= unit-key "tablespoon") (= unit-key "pint")) "volume"
+    ; Si ya está en gramos → categoría "metric" (métrico)
+    (= unit-key "gram") "metric"
+    ; Para cualquier otro caso → categoría "other" (otro)
+    :else "other"))
+
+;; ========================================
+;; BÚSQUEDA Y CONFIGURACIÓN DE TOKENS
+;; ========================================
+
+; Busca un token específico dentro de una línea de tokens tokenizados
+; Utilizado para encontrar configuraciones del sistema como "r-system" o "system-metric"
+(defn find-token-type [token-line token-type]
+  ; Filtra tokens que no sean nil Y que el primer elemento coincida con el tipo buscado
+  (first (filter (fn [token] (and (not (nil? token)) (= (first token) token-type))) token-line)))
+
+; Extrae y procesa la configuración de conversión de unidades desde los tokens del usuario
+; Determina si usar conversión automática a métrico o conversión específica a una unidad
+(defn extract-output-config [tokens]
+  ; Busca token r-system en la línea
+  (let [r-system-token (find-token-type tokens "r-system")
+        ; Busca token system-metric en la línea
+        system-metric-token (find-token-type tokens "system-metric")
+        ; Filtra tokens que empiecen con "user-"
+        user-tokens (filter #(and (not (nil? %))
+                                  (clojure.string/starts-with? (str (first %)) "user-"))
+                            tokens)]
+    (cond
+      ; Si hay r-system Y system-metric → conversión automática a métrico
+      (and r-system-token system-metric-token)
+      {:system "r-system" :target-unit "auto-metric"}
+
+      ; Si hay r-system Y tokens de usuario → conversión específica
+      (and r-system-token (not (empty? user-tokens)))
+      {:system "r-system" :target-unit (first (first user-tokens))}
+
+      ; Si no hay configuración completa → retorna nil
+      :else nil)))
+
+;; ========================================
+;; FACTORES DE CONVERSIÓN DE INGREDIENTES
+;; ========================================
+
+; Obtiene el factor de conversión específico para un ingrediente y tipo de unidad
+; Consulta el diccionario ingredient-conversions para factores precisos por ingrediente
+(defn get-conversion [ingredient-key unit-type]
+  ; Busca las conversiones del ingrediente en el diccionario ingredient-conversions
+  (let [conversions (get ingredient-conversions ingredient-key)]
+    ; Según el tipo de unidad, devuelve el factor de conversión correspondiente
+    (cond
+      ; Si es cup → devuelve factor cup-to-grams
+      (= unit-type "cup") (:cup-to-grams conversions)
+      ; Si es teaspoon → devuelve factor tsp-to-grams
+      (= unit-type "teaspoon") (:tsp-to-grams conversions)
+      ; Si es tablespoon → devuelve factor tbsp-to-grams
+      (= unit-type "tablespoon") (:tbsp-to-grams conversions)
+      ; Si ya está en gramos → factor 1.0 (no conversión)
+      (= unit-type "gram") 1.0
+      ; Si es libra, libras o pounds → devuelve factor lb-to-grams
+      (or (= unit-type "lb") (= unit-type "lbs") (= unit-type "pounds")) (:lb-to-grams conversions)
+      ; Si es onza → devuelve factor oz-to-grams
+      (= unit-type "ounce") (:oz-to-grams conversions)
+      ; Si es pinta → factor fijo 473.176 (1 pint = 473.176 ml ≈ 473.176 g para líquidos)
+      (= unit-type "pint") 473.176
+      ; Si es pulgadas → factor 1.0 (primera línea duplicada)
+      (or (= unit-type "in") (= unit-type "inches")) 1.0
+      ; Si es pulgadas → factor 1.0 (segunda línea duplicada)
+      (or (= unit-type "in") (= unit-type "inches")) 1.0
+      ; Caso por defecto → factor 1.0
+      :else 1.0)))
+
+;; ========================================
+;; CONVERSIONES A GRAMOS (UNIDAD BASE)
+;; ========================================
+
+; Convierte cualquier cantidad de unidades imperiales/volumétricas a gramos
+; Utiliza factores específicos por ingrediente para mayor precisión en volúmenes
+(defn convert-to-grams [amount ingredient-key unit-key]
+  ; Obtiene el factor de conversión específico para el ingrediente y unidad
+  (let [conversion (get-conversion ingredient-key unit-key)]
+    ; Si existe factor de conversión, multiplica cantidad × factor
+    (if conversion
+      (* amount conversion)
+      ; Si no hay factor, devuelve cantidad original sin cambios
+      amount)))
+
+;; ========================================
+;; CONVERSIONES AUTOMÁTICAS A SISTEMA MÉTRICO
+;; ========================================
+
+; Convierte automáticamente unidades imperiales al sistema métrico correspondiente
+; Maneja peso (a gramos), longitud (a centímetros) y volumen (a gramos vía ingrediente)
+(defn convert-to-metric [amount unit-key ingredient-key]
+  ; Obtiene la categoría de la unidad (peso, longitud, volumen, etc.)
+  (let [unit-category (get-unit-category unit-key)]
+    (cond
+      ; Si la categoría es "weight" (peso)
+      (= unit-category "weight")
+      (cond
+        ; Si es libra, libras o pounds → convierte a gramos (* 453.592)
+        (or (= unit-key "lb") (= unit-key "lbs") (= unit-key "pounds"))
+        {:amount (* amount 453.592) :unit "gram"}
+        ; Si es onza → convierte a gramos (* 28.3495)
+        (= unit-key "ounce")
+        {:amount (* amount 28.3495) :unit "gram"}
+        ; Otros casos de peso → mantiene valor y unidad original
+        :else {:amount amount :unit unit-key})
+
+      ; Si la categoría es "length" (longitud)
+      (= unit-category "length")
+      (cond
+        ; Si es pulgadas → convierte a centímetros (* 2.54)
+        (or (= unit-key "in") (= unit-key "inches"))
+        {:amount (* amount 2.54) :unit "cm"}
+        ; Otros casos de longitud → mantiene valor y unidad original
+        :else {:amount amount :unit unit-key})
+
+      ; Si la categoría es "volume" (volumen)
+      (= unit-category "volume")
+      ; Convierte primero a gramos usando factores específicos del ingrediente
+      (let [grams-converted (convert-to-grams amount ingredient-key unit-key)]
+        {:amount grams-converted :unit "gram"})
+
+      ; Si la categoría es "metric" → ya está en métrico, no cambia
+      (= unit-category "metric")
+      {:amount amount :unit unit-key}
+
+      ; Cualquier otra categoría → mantiene valor y unidad original
+      :else {:amount amount :unit unit-key})))
+
+;; ========================================
+;; CONVERSIONES DESDE GRAMOS A UNIDADES ESPECÍFICAS
+;; ========================================
+
+; Convierte desde gramos (unidad base) a la unidad de salida deseada por el usuario
+; Aplica conversión inversa usando los factores específicos del ingrediente
+(defn convert-from-grams [grams ingredient-key target-unit]
+  ; Obtiene las conversiones disponibles para el ingrediente
+  (let [conversions (get ingredient-conversions ingredient-key)]
+    ; Según la unidad objetivo, aplica la conversión inversa
+    (cond
+      ; Si el objetivo es métrico → mantiene gramos
+      (= target-unit "user-metric") grams
+      ; Si el objetivo es cups
+      (= target-unit "user-cup")
+      ; Busca factor cup-to-grams para este ingrediente
+      (if-let [factor (:cup-to-grams conversions)]
+        ; Convierte: gramos ÷ factor = cups
+        (/ grams factor)
+        ; Si no hay factor, mantiene gramos
+        grams)
+      ; Si el objetivo es teaspoons
+      (= target-unit "user-teaspoon")
+      ; Busca factor tsp-to-grams para este ingrediente
+      (if-let [factor (:tsp-to-grams conversions)]
+        ; Convierte: gramos ÷ factor = teaspoons
+        (/ grams factor)
+        ; Si no hay factor, mantiene gramos
+        grams)
+      ; Si el objetivo es tablespoons
+      (= target-unit "user-tablespoon")
+      ; Busca factor tbsp-to-grams para este ingrediente
+      (if-let [factor (:tbsp-to-grams conversions)]
+        ; Convierte: gramos ÷ factor = tablespoons
+        (/ grams factor)
+        ; Si no hay factor, mantiene gramos
+        grams)
+      ; Caso por defecto: mantiene gramos
+      :else grams)))
+
+;; ========================================
+;; MAPEO DE NOMBRES DE UNIDADES PARA DISPLAY
+;; ========================================
+
+; Convierte los códigos internos de unidades a nombres legibles para mostrar al usuario
+; Mapea tokens como "user-metric" a nombres de unidad como "gram"
+(defn get-output-unit-name [target-unit]
+  ; Mapea el token de configuración al nombre de unidad para mostrar
+  (cond
+    ; user-metric → "gram"
+    (= target-unit "user-metric") "gram"
+    ; user-cup → "cup"
+    (= target-unit "user-cup") "cup"
+    ; user-teaspoon → "teaspoon"
+    (= target-unit "user-teaspoon") "teaspoon"
+    ; user-tablespoon → "tablespoon"
+    (= target-unit "user-tablespoon") "tablespoon"
+    ; Caso por defecto → "gram"
+    :else "gram"))
+
+;; ========================================
+;; BÚSQUEDA DE TOKENS POR PREFIJO
+;; ========================================
+
+; Busca tokens que empiecen con un prefijo específico dentro de una línea
+; Útil para encontrar tokens como "ingredient-", "user-", etc.
+(defn find-token-by-prefix [token-line prefix]
+  ; Filtra tokens que no sean nil Y cuyo primer elemento empiece con el prefijo
+  (first (filter (fn [token]
+                   ; Verifica que el token no sea nil
+                   (and (not (nil? token))
+                        ; Verifica que el primer elemento del token empiece con el prefijo
+                        (clojure.string/starts-with? (str (first token)) prefix)))
+                 token-line)))
+
+;; ========================================
+;; CONFIGURACIÓN DEL SISTEMA DESDE PRIMERA LÍNEA
+;; ========================================
+
+; Extrae y parsea la configuración del sistema de conversiones desde la primera línea del archivo
+; Determina qué tipo de conversiones aplicar (métrico, cups, teaspoons, etc.)
+(defn parse-system-config [first-line]
+  ; DEBUG: Imprime estructura de la primera línea
+  (println "DEBUG parse-system-config:")
+  (println "  First line structure:" first-line)
+  (println "  First element:" (first first-line))
+  (println "  Second element:" (second first-line))
+
+  ; ARREGLO: Comparar como strings
+  (cond
+    ; Si el primer elemento es "system:" (convertido a string)
+    (= (str (first first-line)) "system:")
+    ; Extrae el valor del sistema (segundo elemento)
+    (let [system-value (second first-line)]
+      (println "  Found system token with value:" system-value)
+      (cond
+        ; Si el valor es "metric" → configuración para auto-métrico
+        (= (str system-value) "metric") {:system "r-system" :target-unit "auto-metric"}
+        ; Si el valor es "cup" → configuración para user-cup
+        (= (str system-value) "cup") {:system "r-system" :target-unit "user-cup"}
+        ; Si el valor es "teaspoon" → configuración para user-teaspoon
+        (= (str system-value) "teaspoon") {:system "r-system" :target-unit "user-tablespoon"}
+        ; Si el valor es "tablespoon" → configuración para user-tablespoon
+        (= (str system-value) "tablespoon") {:system "r-system" :target-unit "user-tablespoon"}
+        ; Otros valores → retorna nil
+        :else nil))
+
+    ; ALTERNATIVA: Si es formato de lista de listas
+    (and (list? first-line) (some list? first-line))
+    ; Busca un token "system:" dentro de las listas anidadas
+    (let [system-token (first (filter #(and (list? %)
+                                            (= (str (first %)) "system:")) first-line))]
+      ; Si encuentra el token system
+      (when system-token
+        ; Extrae el valor del sistema
+        (let [system-value (second system-token)]
+          (println "  Found nested system token with value:" system-value)
+          (cond
+            ; Si el valor es "metric" → configuración para auto-métrico
+            (= (str system-value) "metric") {:system "r-system" :target-unit "auto-metric"}
+            ; Si el valor es "cup" → configuración para user-cup
+            (= (str system-value) "cup") {:system "r-system" :target-unit "user-cup"}
+            ; Si el valor es "teaspoon" → configuración para user-teaspoon
+            (= (str system-value) "teaspoon") {:system "r-system" :target-unit "user-tablespoon"}
+            ; Si el valor es "tablespoon" → configuración para user-tablespoon
+            (= (str system-value) "tablespoon") {:system "r-system" :target-unit "user-tablespoon"}
+            ; Otros valores → retorna nil
+            :else nil))))
+
+    ; Si no encuentra nada
+    :else
+    (do
+      ; Imprime mensaje de debug
+      (println "  No system configuration found")
+      ; Retorna nil
+      nil)))
+
+;; ========================================
+;; PARSING DE NÚMEROS Y FRACCIONES ESCALADAS
+;; ========================================
+
+; Convierte strings de números escalados (enteros y fracciones) a valores numéricos decimales
+; Maneja tanto fracciones simples como números enteros representados como strings
+(defn parse-scaled-number [number-str]
+  (cond
+    ; Si el string contiene "/" (es una fracción)
+    (re-find #"/" number-str)
+    ; Divide el string por "/" y convierte a fracción
+    (let [parts (clojure.string/split number-str #"/")]
+      (/ (read-string (first parts)) (read-string (second parts))))
+    ; Si no es fracción, convierte directamente a número
+    :else (read-string number-str)))
+
+; Convierte strings de fracciones mixtas escaladas (ej: "2 1/3") a valores numéricos decimales
+; Suma la parte entera con la fracción para obtener el valor total
+(defn parse-mixed-scaled [mixed-str]
+  ; Divide el string por espacios
+  (let [parts (clojure.string/split mixed-str #" ")]
+    ; Si tiene 2 partes (número entero + fracción)
+    (if (= (count parts) 2)
+      ; Suma el entero + la fracción parseada
+      (+ (read-string (first parts)) (parse-scaled-number (second parts)))
+      ; Si no, trata todo como fracción simple
+      (parse-scaled-number mixed-str))))
+
+;; ========================================
+;; IDENTIFICACIÓN DE TIPOS DE TOKENS
+;; ========================================
+
+; Identifica si un token representa una cantidad escalada (números procesados por el escalado)
+; Reconoce tokens que empiecen con "number-s" indicando que fueron escalados
+(defn is-scaled-number? [token]
+  ; Verifica que sea una lista
+  (and (list? token)
+       ; Verifica que tenga al menos 2 elementos
+       (>= (count token) 2)
+       ; Verifica que el primer elemento empieze con "number-s"
+       (clojure.string/starts-with? (str (first token)) "number-s")))
+
+; Identifica si un token representa una unidad de medida convertible
+; Reconoce unidades como cups, teaspoons, pounds, etc. que pueden ser convertidas
+(defn is-convertible-unit? [token]
+  ; Verifica que sea una lista
+  (and (list? token)
+       ; Verifica que tenga al menos 2 elementos
+       (>= (count token) 2)
+       ; Verifica que el primer elemento esté en el conjunto de unidades convertibles
+       (contains? #{"cup" "teaspoon" "tablespoon" "lbs" "lb" "pounds" "ounce" "inches" "in" "gram"}
+                  (str (first token)))))
+
+; Busca y extrae el token de ingrediente dentro de una línea de tokens
+; Identifica ingredientes por el prefijo "ingredient-" en el tipo de token
+(defn find-ingredient-in-line [token-line]
+  ; Encuentra el primer token que sea una lista
+  (first (filter #(and (list? %)
+                       ; Que tenga al menos 2 elementos
+                       (>= (count %) 2)
+                       ; Y que el primer elemento empiece con "ingredient-"
+                       (clojure.string/starts-with? (str (first %)) "ingredient-"))
+                 token-line)))
+
+;; ========================================
+;; CONVERSIÓN DE VALORES DE CANTIDAD
+;; ========================================
+
+; Convierte tokens de cantidad según su tipo (escalado simple, fracción mixta, etc.)
+; Extrae y parsea el valor numérico del token manteniendo el tipo original
+(defn convert-quantity-value [quantity-token]
+  ; Verifica que sea una lista con al menos 2 elementos
+  (when (and (list? quantity-token) (>= (count quantity-token) 2))
+    ; Extrae el tipo del token (primer elemento)
+    (let [token-type (str (first quantity-token))
+          ; Extrae el valor del token (segundo elemento)
+          token-value (str (second quantity-token))]
+      (cond
+        ; Si es "number-s" → parsea como número escalado
+        (= token-type "number-s") (parse-scaled-number token-value)
+        ; Si es "number-s-mix" → parsea como fracción mixta escalada
+        (= token-type "number-s-mix") (parse-mixed-scaled token-value)
+        ; Otros casos → retorna el segundo elemento directamente
+        :else (second quantity-token)))))
+
+;; ========================================
+;; CONVERSIÓN DE PARES CANTIDAD-UNIDAD
+;; ========================================
+
+; Convierte un par cantidad-unidad aplicando las conversiones según la configuración del usuario
+; Coordina entre conversión a métrico automático o conversión específica a una unidad
+(defn convert-quantity-unit-pair [quantity-token unit-token ingredient-key config]
+  ; Si no hay configuración, retorna tokens originales
+  (if (not config)
+    (list quantity-token unit-token)
+    ; Parsea la cantidad del token
+    (let [parsed-quantity (convert-quantity-value quantity-token)
+          ; Extrae el tipo de unidad
+          unit-type (str (first unit-token))
+          ; Extrae la unidad objetivo de la configuración
+          target-unit (:target-unit config)]
+      ; Verifica si debe convertir usando función should-convert-to-volume?
+      (if (not (should-convert-to-volume? ingredient-key unit-type target-unit))
+        ; No convertir - mantener original pero con cantidad parseada
+        (list (list (first quantity-token) parsed-quantity) unit-token)
+
+        ; SÍ convertir - procesar según el tipo de objetivo
+        (cond
+          ; Si el objetivo es auto-métrico
+          (= target-unit "auto-metric")
+          ; Convierte usando convert-to-metric
+          (let [metric-conversion (convert-to-metric parsed-quantity unit-type ingredient-key)
+                ; Extrae cantidad convertida
+                converted-amount (:amount metric-conversion)
+                ; Extrae unidad convertida
+                converted-unit (:unit metric-conversion)]
+            ; Retorna lista con cantidad y unidad convertidas
+            (list (list (first quantity-token) converted-amount)
+                  (list converted-unit (if (= converted-unit "gram") "grams" converted-unit))))
+
+          ; Si el objetivo es user-cup, user-teaspoon, o user-tablespoon
+          (contains? #{"user-cup" "user-teaspoon" "user-tablespoon"} target-unit)
+          ; Convierte primero a gramos, luego a la unidad objetivo
+          (let [grams (convert-to-grams parsed-quantity ingredient-key unit-type)
+                ; Convierte de gramos a la unidad objetivo
+                converted-amount (convert-from-grams grams ingredient-key target-unit)
+                ; Obtiene el nombre de la unidad para mostrar
+                output-unit-name (get-output-unit-name target-unit)]
+            ; Retorna lista con cantidad y unidad convertidas
+            (list (list (first quantity-token) converted-amount)
+                  (list output-unit-name output-unit-name)))
+
+          ; Otros casos → mantiene original con cantidad parseada
+          :else (list (list (first quantity-token) parsed-quantity) unit-token))))))
+
+;; ========================================
+;; UTILIDADES DE ACCESO SEGURO
+;; ========================================
+
+; Accede de forma segura a elementos de una colección por índice
+; Evita errores al acceder a índices fuera del rango de la colección
+(defn nth-or-nil [coll n]
+  ; Verifica que el índice sea válido (≥ 0 y < tamaño de colección)
+  (when (and (>= n 0) (< n (count coll)))
+    ; Si es válido, retorna el elemento en posición n
+    (nth coll n)))
+
+;; ========================================
+;; IDENTIFICACIÓN DE PARES CANTIDAD-UNIDAD
+;; ========================================
+
+; Identifica y mapea pares consecutivos de cantidad-unidad dentro de una línea de tokens
+; Encuentra números escalados seguidos inmediatamente por unidades convertibles
+(defn find-quantity-unit-pairs [tokens]
+  ; Crea lista de tokens con sus índices
+  (let [indexed-tokens (map-indexed (fn [idx token] {:idx idx :token token}) tokens)]
+    ; Filtra elementos válidos (no nil)
+    (filter identity
+      ; Mapea cada token indexado
+            (map (fn [{:keys [idx token]}]
+             ; Obtiene el siguiente token
+                   (let [next-token (nth-or-nil tokens (inc idx))]
+               ; Si existe siguiente token Y el actual es número escalado Y el siguiente es unidad convertible
+                     (when (and next-token
+                                (is-scaled-number? token)
+                                (is-convertible-unit? next-token))
+                 ; Retorna mapa con información del par
+                       {:quantity-idx idx           ; Índice de la cantidad
+                        :unit-idx (inc idx)         ; Índice de la unidad
+                        :quantity token             ; Token de cantidad
+                        :unit next-token})))        ; Token de unidad
+                 indexed-tokens))))
+
+;; ========================================
+;; APLICACIÓN DE CONVERSIONES A TOKENS
+;; ========================================
+
+; Aplica las conversiones calculadas a la línea de tokens manteniendo el orden original
+; Reemplaza tokens en posiciones específicas con sus versiones convertidas
+(defn apply-conversions [tokens conversions]
+  ; Crea mapa de conversiones: índice → nuevo valor
+  (let [conversion-map (into {}
+                             ; Aplana lista de conversiones en pares [índice valor]
+                             (mapcat (fn [conv]
+                                       ; Para cada conversión, crea dos pares: cantidad y unidad
+                                       [[(:quantity-idx conv) (:new-quantity conv)]
+                                        [(:unit-idx conv) (:new-unit conv)]])
+                                     conversions))]
+    ; Mapea tokens con índices
+    (map-indexed (fn [idx token]
+                   ; Si hay conversión para este índice, usa valor convertido; sino, token original
+                   (get conversion-map idx token))
+                 tokens)))
+
+;; ========================================
+;; PROCESAMIENTO DE LÍNEAS DE TOKENS
+;; ========================================
+
+; Procesa una línea completa de tokens aplicando conversiones según la configuración
+; Coordina la conversión de cantidades individuales y pares cantidad-unidad
+(defn process-line [token-line config]
+  ; Si la línea está vacía o no hay configuración, retorna línea original
+  (if (or (empty? token-line) (not config))
+    token-line
+    ; Busca ingrediente en la línea
+    (let [ingredient-token (find-ingredient-in-line token-line)
+          ; Busca pares cantidad-unidad en la línea
+          pairs (find-quantity-unit-pairs token-line)]
+      (when (and ingredient-token (not (empty? token-line)))
+        (println "DEBUG process-line:")
+        (println "  Line:" token-line)
+        (println "  Ingredient found:" ingredient-token)
+        (println "  Pairs found:" pairs)
+        (println "  Config:" config))
+
+      ; Si no hay pares o no hay ingrediente
+      (if (or (empty? pairs) (not ingredient-token))
+        ; Solo convertir cantidades individuales (sin conversión de unidades)
+        (map (fn [token]
+               ; Si es número escalado, convierte solo la cantidad
+               (if (is-scaled-number? token)
+                 (list (first token) (convert-quantity-value token))
+                 ; Otros tokens permanecen igual
+                 token))
+             token-line)
+
+        ; Procesar pares cantidad-unidad (conversión completa)
+        ; Extrae clave del ingrediente
+        (let [ingredient-key (str (first ingredient-token))
+              ; Procesa cada par cantidad-unidad
+              conversions (map (fn [pair]
+                                 ; Convierte el par usando convert-quantity-unit-pair
+                                 (let [converted-pair (convert-quantity-unit-pair
+                                                       (:quantity pair)
+                                                       (:unit pair)
+                                                       ingredient-key
+                                                       config)]
+                                   ; Enriquece el par original con valores convertidos
+                                   (assoc pair
+                                          :new-quantity (first converted-pair)
+                                          :new-unit (second converted-pair))))
+                               pairs)]
+          ; Aplica todas las conversiones a la línea de tokens
+          (apply-conversions token-line conversions))))))
+
+;; ========================================
+;; PROCESAMIENTO DE ARCHIVOS DE RECETAS
+;; ========================================
+
+; Procesa un archivo completo de receta aplicando conversiones línea por línea
+; Extrae configuración de la primera línea y la aplica a todo el archivo
+(defn process-recipe-file [lines]
+  ; Si no hay líneas, retorna lista vacía
+  (if (empty? lines)
+    lines
+    ; Extrae configuración de la primera línea
+    (let [first-line (first lines)
+          ; Parsea configuración del sistema
+          config (parse-system-config first-line)]
+      ; Procesa cada línea con la configuración
+      (map #(process-line % config) lines))))
+
+;; ========================================
+;; FUNCIÓN PRINCIPAL DE CONVERSIÓN DE RECETAS
+;; ========================================
+
+; Función principal que orquesta la conversión completa de una receta
+; Detecta si hay configuración de sistema y aplica las conversiones correspondientes
+(defn convert-recipe [input-data]
+  (cond
+    ; Si hay datos Y contiene configuración "system:"
+    (and (not (empty? input-data))
+         ; Busca líneas que contengan "system:" (formato directo o anidado)
+         (some #(and (list? %)
+                     (or
+                       ; Formato con keyword anidado
+                      (some (fn [x] (and (list? x)
+                                         (= (str (first x)) "system:"))) %)
+                       ; Formato directo
+                      (= (str (first %)) "system:")))
+               input-data))
+    ; Procesa el archivo de receta
+    (process-recipe-file input-data)
+
+    ; Si no hay configuración, devuelve datos sin cambios
+    :else input-data))
+
+;; ===========================
+;; FIN DE CÓDIGO DE CONVERSIONES
+;; ==============================
+
+
 
 ; Analyze all recipes and apply manipulations
+; Analyze all recipes and apply manipulations
+; Analyze all recipes and apply manipulations
 (defn analyze-recipes [processed-recipes user-tokens]
-    ; Apply manipulations to all recipes
-    (let [manipulated-recipes (doall (map (fn [recipe]
-                                     (manipulate-recipe recipe user-tokens))
-                                   processed-recipes))
-         ]
-        
-        (println "Processed" (count manipulated-recipes) "recipes")
-        
-        ; Return the manipulated recipes in correct format 
-        manipulated-recipes
-    )
-)
+  (let [manipulated-recipes (doall (map (fn [recipe]
+                                          (manipulate-recipe recipe user-tokens))
+                                        processed-recipes))]
+
+    (println "Processed" (count manipulated-recipes) "recipes")
+
+    (let [user-system-pref (second (second (first user-tokens)))
+          converted-recipes (doall (map (fn [recipe]
+                                          (let [recipe-name (first recipe)
+                                                original-lines (second recipe)
+                                                scaled-tokenized-lines (nth recipe 2)
+                                                system-config (list "system:" user-system-pref)
+                                                recipe-data (cons system-config scaled-tokenized-lines)
+                                                converted-data (convert-recipe recipe-data)]
+                                            (if converted-data
+                                              (list recipe-name original-lines converted-data)
+                                              (list recipe-name original-lines scaled-tokenized-lines))))
+                                        manipulated-recipes))]
+
+      (println "Applied unit conversions to scaled recipes:" (count converted-recipes))
+      (println "Using user preference:" user-system-pref)
+
+      converted-recipes)))
 
 ; Función principal que checa recetas con el número de opciones seleccionadas y threads especificados 
 (defn main [options-file num-threads]
     ; Leer options file y guardar preferencias del usuario 
-    (def options-path (str "options/" options-file))
-    (println "\n-------FILE PATH: " options-path)
+  (def options-path (str "options/" options-file))
+  (println "\n-------FILE PATH: " options-path)
 
-    (def file-lines (read-file-lines options-path))
-    (println "\n-------USER PREFERENCES\n" file-lines)
+  (def file-lines (read-file-lines options-path))
+  (println "\n-------USER PREFERENCES\n" file-lines)
 
-    (println "\n-------LINE BY LINE")
+  (println "\n-------LINE BY LINE")
     ;(def opt-lines (list (map (fn [line] (println line)) file-lines)) )
-    (def opt-lines (map list file-lines))
-    (println opt-lines)
+  (def opt-lines (map list file-lines))
+  (println opt-lines)
 
-    (def opt-tokenized
-        (doall 
-            (map (fn [current-line] 
-                (tokenize (first current-line) dict-user)) 
-            opt-lines)
-        )
-    )
+  (def opt-tokenized
+    (doall
+     (map (fn [current-line]
+            (tokenize (first current-line) dict-user))
+          opt-lines)))
 
-    (println "\n-------TOKENIZED")
-    (println opt-tokenized)
+  (println "\n-------TOKENIZED")
+  (println opt-tokenized)
 
     ; looking for user preferences servings amt
-    (print "looking for servings: ")
-    (print (second (second (nth opt-tokenized 2))) )
+  (print "looking for servings: ")
+  (print (second (second (nth opt-tokenized 2))))
 
     ; Leer recetas
-    (println "\n-------READ RECIPES")
-    (println (str "Procesando con archivo de opciones: " options-file))
-    (println (str "Número de threads: " num-threads))
-  
+  (println "\n-------READ RECIPES")
+  (println (str "Procesando con archivo de opciones: " options-file))
+  (println (str "Número de threads: " num-threads))
+
     ; Definir rutas de recetas
     ;(def ruta ["recipes/Best Homemade Brownies-1.txt" 
     ;           "recipes/Chimichurri Sauce.txt" 
     ;           "recipes/Lemon Cake-1.txt"
     ;           "recipes/Fettuccine Alfredo.txt"
     ;           "recipes/Pan-Seared Steak with Garlic Butter.txt"])
-    (def ruta ["recipes/Best Homemade Brownies-1.txt"
-                "recipes/Chimichurri Sauce.txt" 
-                "recipes/Fettuccine Alfredo.txt"
-                "recipes/Lemon Cake-1.txt"
-                "recipes/Pan-Seared Steak with Garlic Butter.txt"
-
-    ])
+  (def ruta ["recipes/Best Homemade Brownies-1.txt"
+             "recipes/Chimichurri Sauce.txt"
+             "recipes/Fettuccine Alfredo.txt"
+             "recipes/Lemon Cake-1.txt"
+             "recipes/Pan-Seared Steak with Garlic Butter.txt"])
 
     ; Ajustar número de threads para evitar particiones vacías
-    (def n-threads-ajustado (min num-threads (count ruta)))
-    (def chunk-size (max 1 (int (/ (count ruta) n-threads-ajustado))))
+  (def n-threads-ajustado (min num-threads (count ruta)))
+  (def chunk-size (max 1 (int (/ (count ruta) n-threads-ajustado))))
 
     ; Divides the recipes into chunks containing file names
-    (def data-chunks 
+  (def data-chunks
     (partition-all chunk-size ruta))
 
-    (println "CHUNKS: " data-chunks) ; Stores list
-    ;; 2 recipes 2 threads((recipes/Best Homemade Brownies-1.txt) (recipes/Chimichurri Sauce.txt))
-    ;; 2 recipes 1 thread ((recipes/Best Homemade Brownies-1.txt recipes/Chimichurri Sauce.txt))
+  (println "CHUNKS: " data-chunks) ; Stores list
+  ;; 2 recipes 2 threads((recipes/Best Homemade Brownies-1.txt) (recipes/Chimichurri Sauce.txt))
+  ;; 2 recipes 1 thread ((recipes/Best Homemade Brownies-1.txt recipes/Chimichurri Sauce.txt))
 
     ; Medir tiempo de ejecución y procesar en paralelo
-    (println "\n-------TOTAL TIME")
+  (println "\n-------TOTAL TIME")
     ; Guarda tiempo de ejecución
-    (def exec-time 
-        (time 
-            (do
+  (def exec-time
+    (time
+     (do
                 ; Process the recipes 
-                (def recipes-processed
-                    (apply concat ; Aplana chunks pero keeps recipes separated
+       (def recipes-processed
+         (apply concat ; Aplana chunks pero keeps recipes separated
                         ; Sends the chunks of recipes (list of recipes) to proccess them
-                        (pmap process-chunk data-chunks)
-                    )
-                )
+                (pmap process-chunk data-chunks)))
                 ; Print the tokens
-                (doall (map (fn [x] (println (nth x 2)"\n\nNext Recipe Tokens:\n")) recipes-processed)) ; Check all the recipes 
+       (doall (map (fn [x] (println (nth x 2) "\n\nNext Recipe Tokens:\n")) recipes-processed)) ; Check all the recipes 
 
                 ; Passes tokenized recipe and the tokens of user customization
-                (def fix-recipes (analyze-recipes recipes-processed opt-tokenized))
-            )
-        )
-    )
+       (def fix-recipes (analyze-recipes recipes-processed opt-tokenized)))))
 
-    (println exec-time)
-    (println "Fixed recipes")
+  (println exec-time)
+  (println "Fixed recipes")
 
     ; Structure of recipes 
     ;(println (nth (first fix-recipes) 0) )
@@ -841,7 +1400,7 @@
     ;(println (nth (first fix-recipes) 2) )
 
     ;(println (nth (map (first) fix-recipes) 2) )
-    (doall (map (fn [x] (println (nth x 2)"\n\nFINAL Recipe Tokens:\n")) fix-recipes)) ; Check all the recipes 
+  (doall (map (fn [x] (println (nth x 2) "\n\nFINAL Recipe Tokens:\n")) fix-recipes)) ; Check all the recipes 
 
 
 
@@ -857,9 +1416,8 @@
     ;(println lectura)
 
     ; Retornar los datos para uso posterior
+  )
 
-)
-  
 
 ; Pasar input file y el número de threads para probarlo
 ;(main "options1.txt" 1)
