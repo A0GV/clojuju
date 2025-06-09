@@ -695,11 +695,12 @@
 ; Main function to manipulate one recipe at a time based on user preferences
 (defn manipulate-recipe [recipe user-options]
     (println "\n------- BEGIN MANIPULATION -------")
+    
     (let [
             recipe-name (first recipe)
             original-lines (second recipe)
             tokenized-lines (nth recipe 2)
-
+            
             ; Checks if user wants C
             user-temp-units (user-celsius-check user-options)
             ; Extracts number of portions that user wants, need read-string to handle that it's a string
@@ -739,16 +740,32 @@
 
 ; Analyze all recipes and apply manipulations
 (defn analyze-recipes [processed-recipes user-tokens]
-    ; Apply manipulations to all recipes
-    (let [manipulated-recipes (doall (map (fn [recipe]
-                                     (manipulate-recipe recipe user-tokens))
-                                   processed-recipes))
-         ]
-        
-        (println "Processed" (count manipulated-recipes) "recipes")
-        
-        ; Return the manipulated recipes in correct format 
-        manipulated-recipes
+    (def recetas (map #(nth % 2) processed-recipes))
+    
+    (let [filtro (first (second (last user-tokens)))]
+        (if (= filtro "r-all")
+            ; Apply manipulations to all recipes
+            (let [manipulated-recipes (doall (map (fn [recipe]
+                                            (manipulate-recipe recipe user-tokens))
+                                        processed-recipes))
+                ]
+                
+                (println "Processed" (count manipulated-recipes) "recipes")
+                
+                ; Return the manipulated recipes in correct format 
+                manipulated-recipes
+            )
+            ;Solamente manipula las que pasen el filtro declarado por el usuario
+            (let [recetas-filtradas 
+                    (filter (fn [recipe] (some
+                                (fn [token-line]
+                                    (some (fn [token] (= (second token) (second (second (last user-tokens))))) token-line))
+                                (nth recipe 2)))
+                        processed-recipes)]
+                (println "Recetas filtradas:" (count recetas-filtradas))
+                (doall (map (fn [recipe] (manipulate-recipe recipe user-tokens)) recetas-filtradas))
+            )
+        )
     )
 )
 
@@ -874,14 +891,15 @@
 
     ;(println (nth (map (first) fix-recipes) 2) )
     (doall (map (fn [x] (println (nth x 2)"\n\nFINAL Recipe Tokens:\n")) fix-recipes)) ; Check all the recipes 
+    
+    (def onlyname (map (fn [x] (subs (nth x 0) 8 (- (count (nth x 0)) 4))) fix-recipes))
+    ;Nombres de los htmls (buscar que no haya conflicto si se duplican)
     (def receras (map (fn [x] (html (nth x 2))) fix-recipes)); Convierte a html
     ;(println receras)
-    ;Nombres de los htmls (buscar que no haya conflicto si se duplican)
-    (def onlyname (map (fn [x] (subs x 8 (- (count x) 4))) ruta))
     ;Elimino los espacios en el nombre
     (def nombre (map (fn [x] (clojure.string/replace x #" " "")) onlyname))
     (println nombre)
-    (doall (map (fn [x y] (spit (str "htmls/" x ".html") (str htmlcompleto "</br></br>" y))) nombre receras))
+    (doall (map (fn [x y] (spit (str "htmls/" x ".html") (str htmlcompleto "</br></br><div class='receta'" y "</div>"))) nombre receras))
     (println "Se imprimió html de cada receta encontrada")
     ; Tokenización - cantidades, unidades de medida, numero de porciones y temperaturas
     ; Convertir unidades - tazas, teaspoons, cups, gramos, Fahrenheit a Celsius,  y viceversa
@@ -904,5 +922,6 @@
 ;(main "options1.txt" 10)
 
 (main "options1.txt" 1)
+;(main "options2.txt" 1)
 
 (println "Mixed convert: "  (mixedFrac "1 1/2")) ; Test fraction to make sure its an int
