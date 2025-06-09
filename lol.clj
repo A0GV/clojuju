@@ -899,12 +899,26 @@
     
     (def onlyname (map (fn [x] (subs (nth x 0) 8 (- (count (nth x 0)) 4))) fix-recipes))
     ;Nombres de los htmls (buscar que no haya conflicto si se duplican)
-    (def receras (map (fn [x] (html (nth x 2))) fix-recipes)); Convierte a html
-    ;(println receras)
+
+    ;IMPRIMIR HTMLS
+    (def receras 
+        (map (fn [x] 
+                (let [tokenized-lines (nth x 2)
+                    first-line (list (first tokenized-lines))
+                    rest-lines (rest tokenized-lines)
+                    ; Crea el h2 para la primera línea
+                    h2-line (str "<h2>" (html first-line) "</h2>")
+                    ; Convierte el resto normalmente
+                    rest-html (html rest-lines)]
+                ; Combina todo
+                (str h2-line rest-html)))
+            fix-recipes)
+    )
+    
     ;Elimino los espacios en el nombre
     (def nombre (map (fn [x] (clojure.string/replace x #" " "")) onlyname))
     (println nombre)
-    (doall (map (fn [x y] (spit (str "htmls/" x ".html") (str htmlcompleto "</br></br><div class='receta'" y "</div>"))) nombre receras))
+    (doall (map (fn [x y] (spit (str "htmls/" x ".html") (str htmlcompleto "</br></br><div class='receta'>" y "</div>"))) nombre receras))
     (println "Se imprimió html de cada receta encontrada")
     ; Tokenización - cantidades, unidades de medida, numero de porciones y temperaturas
     ; Convertir unidades - tazas, teaspoons, cups, gramos, Fahrenheit a Celsius,  y viceversa

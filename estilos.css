@@ -1,11 +1,12 @@
 *{
     font-family: "Comic Neue", cursive;
-    font-weight: 500;
+    
     font-style: normal;
 }
 
 body{
     background-color: #f6eccf;
+    font-weight: 500;
     font-size: 25px;
     text-align: center;
 }
@@ -43,7 +44,7 @@ h1{
     background-color: #faf9f5;
     text-align: left;
     margin: 0 100px 0 100px;
-    padding: 20px 30px 20px 30px;
+    padding: 5px 30px 20px 30px;
     border-radius: 10px;
 }
 
@@ -52,7 +53,44 @@ h1{
     font-weight: 525;
 }
 
+.serves-amt{
+    background-color: #c76b3a;
+    color: #faf9f5;
+    padding: 0 10px 0 10px;
+}
+
+.number-s, .number-s-mix{
+    color: #845415;
+    font-weight: 510;
+}
+
 .step-num{
     color:#712127;
     font-weight: 525;
+}
+
+h2{
+    text-align: center;
+    font-weight: 550;
+    color: #a81d16;
+    padding: 10px 20px 10px 20px;
+    border-radius: 10px;
+}
+
+.prep-t{
+    background-color: #e57893;
+    padding: 0 10px 0 10px;
+    color: #faf9f5;
+}
+
+.cook-t{
+    background-color: #e56081;
+    padding: 0 10px 0 10px;
+    color: #faf9f5;
+}
+
+.total-t{
+    background-color: #e3486f;
+    padding: 0 10px 0 10px;
+    color: #faf9f5;
 }
