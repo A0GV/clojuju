@@ -546,7 +546,6 @@
                 ))
             token-line)) 
         '("\t" "\t")) ; It is not a sequence
-    ;)
 )
 
 ; Main function to manipulate one recipe at a time based on user preferences
