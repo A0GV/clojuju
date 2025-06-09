@@ -47,7 +47,7 @@ h1{
     border-radius: 10px;
 }
 
-.kw-ingredient, .kw-instruct, .kw-equip, .kw-category{
+.kw-ingredient, .kw-instruct, .kw-equip, .kw-category, .kw-author{
     color: #891a14;
     font-weight: 525;
 }
