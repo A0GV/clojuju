@@ -137,6 +137,9 @@
 (def rg-temp-c (list "temp-C" #"^[0-9]+°C"))
 (def rg-temp-f (list "temp-F" #"^[0-9]+°F"))
 
+(def rg-temp-f-range (list "temp-f-range" #"^[0-9]+°F\s*-\s*[0-9]+°F")) 
+(def rg-temp-c-range (list "temp-c-range" #"^[0-9]+°C\s*-\s*[0-9]+°C")) 
+
 (def rg-pt (list "prep-t" #"^Prep Time\:\s*[0-9]+\s*(?:mins|minutes)"))
 (def rg-ct (list "cook-t" #"^Cook Time\:\s*[0-9]+\s*(?:mins|minutes)"))
 (def rg-tt (list "total-t" #"^Total Time\:\s*[0-9]+\s*(?:mins|minutes)"))
@@ -232,7 +235,7 @@
                   rg-steaks
                   rg-rosemary
 
-                    ; Unidades
+                  ; Unidades
                   rg-cup
                   rg-teaspoon
                   rg-tablespoon
@@ -251,10 +254,12 @@
                   rg-for-dusting
                   rg-gram
 
-                    ; Adding
+                  ; Adding
                   rg-serves
-                  rg-temp-c rg-temp-f
-                    ; Time mentions
+                  ; Temps 
+                  rg-temp-f-range rg-temp-c-range ; First to check for ranges 
+                  rg-temp-c rg-temp-f ; Then just normal temp mentions
+                  ; Time mentions 
                   rg-pt rg-ct rg-tt
 
                     ; Keywords
@@ -571,93 +576,152 @@
     resp))
 
 ;; COMPARISON TOKENS AGAINST USER PREFERENCES
-; Check user wants cel
-(defn user-celsius-check [user-tokens]
-    ; Some token among the options txt is t-cel
-  (some
-        ; Checks token is not null and that the first val is t-cel
-   (fn [token-line]
-     (some
-      (fn [token] (and (not (nil? token)) (= (first token) "t-cel")))
-      token-line))
-   user-tokens))
+;; F -> C range or C -> F based on user desired
+(defn temp-range-convert [temp-range-str user-temp-units]
+    (let [
+        ; List of number matches using re-seq 
+        temp-nums (re-seq #"[0-9]+" temp-range-str) 
+        ; Converts temps to numbers
+        temp1 (Integer/parseInt (first temp-nums)) 
+        temp2 (Integer/parseInt (second temp-nums))
+        ]
+        ; For temperature DIFFERENCES, just multiply by 5/9
+        ;c-val1 (* f-val1 (/ 5 9.0))
+        ;c-val2 (* f-val2 (/ 5 9.0))
 
+        ; user-temp units = true -> F to C; else C to F
+        (if user-temp-units
+            ; F -> C calc
+            (let [
+                c1 (* temp1 (/ 5 9))
+                c2 (* temp2 (/ 5 9))
+                ]
+                ; Exec checks
+                (println "Changed " temp1 "-" temp2 "->" c1 "-" c2)
+                ; Returns list converted with the new token name 
+                (list "temp-c-range" (str c1 "°C-" c2 "°C"))
+            )
+
+            ; C -F F calc
+            (let [
+                f1 (* temp1 (/ 9 5))
+                f2 (* temp2 (/ 9 5))
+                ]
+                ; Body 
+                (println "Changed " temp1 "-" temp2 "->" f1 "-" f2)
+                (list "temp-f-range" (str f1 "°F-" f2 "°F"))
+            )
+        )
+    )
+)
+
+; Processes line using result of whether user wants celcius
 ; Processes line using result of whether user wants celcius
 (defn process-token-line [token-line user-temp-units scale-factor]
     ;(println "Processing token-line")
-  (if (seq token-line)
-    (doall
-     (map (fn [token]
+    (if (seq token-line)
+        (doall 
+            (map (fn [token]
                 ; Recipe token is currently set to F and user wants C
-            (cond
+                (cond 
                     ; Checks recipe F, user C
-              (and
-               (not (nil? token))
-               (not (empty? token))
-               (= (first token) "temp-F")
-               user-temp-units)
+                    (and 
+                        (not (nil? token)) 
+                        (not (empty? token))
+                        (= (first token) "temp-F") 
+                        user-temp-units
+                    )
                         ; Need to convert F to C, calls funct
-              (f-to-c (second token))
-
+                        (f-to-c (second token))
+                    
                     ; Checks recipe C, user F
-              (and
-               (not (nil? token))
-               (not (empty? token))
-               (= (first token) "temp-C")
-               (not user-temp-units) ; False = Farenheit
-               )
+                    (and 
+                        (not (nil? token)) 
+                        (not (empty? token))
+                        (= (first token) "temp-C") 
+                        (not user-temp-units) ; False = Farenheit
+                    )
                         ; Calls funct to convert F -> C
-              (c-to-f (second token))
+                        (c-to-f (second token))
 
-                    ; Checks if it is a number or simple fraction to convert
-              (and
-               (not (nil? token))
-               (not (empty? token))
-                        ; If it is a
-               (or (= (first token) "number-integer")
-                   (= (first token) "number-fraction")))
-                        ; Multiplies current amt by scale factor
+                    ; Checks recipe range F, user C
+                    (and 
+                        (not (nil? token)) 
+                        (not (empty? token))
+                        (= (first token) "temp-f-range") 
+                        user-temp-units ; True C
+                    )
+                        ; Need to convert F to C, calls funct w value and user desired
+                        (temp-range-convert (second token) user-temp-units)
+
+                    ; Checks recipe range C, user F
+                    (and 
+                        (not (nil? token)) 
+                        (not (empty? token))
+                        (= (first token) "temp-c-range") 
+                        (not user-temp-units) ; False F
+                    )
+                        ; Need to convert C to F, calls funct w value and user desired
+                        (temp-range-convert (second token) user-temp-units)
+
+                    ; Checks if it is a number or simple fraction to convert 
+                    (and 
+                        (not (nil? token)) 
+                        (not (empty? token))
+                        ; If it is a 
+                        (or (= (first token) "number-integer")
+                            (= (first token) "number-fraction")
+                        )
+                    )
+                        ; Multiplies current amt by scale factor 
                         ;(println "FRACTION " (first token) "value: " extract-num-value (second token) )
                         ;(list "number-scaled" (* scale-factor (extract-num-value (second token))) )
                         ;(list "number-s-integer" (str (* scale-factor (extract-num-value token))))
-              (let [original-str (second token)  ; Get the string value
+                        (let [
+                            original-str (second token)  ; Get the string value
                             ; Convert a numero con adolf help
-                    original-value (numToInt original-str)
-                    scaled-value (* scale-factor original-value)]
-                (println "  Scaling number:" original-str "×" scale-factor "=" scaled-value)
+                            original-value (numToInt original-str)  
+                            scaled-value (* scale-factor original-value)]
+                            (println "  Scaling number:" original-str "×" scale-factor "=" scaled-value)
+                            
+                            ; Structured list 
+                            (list "number-s" (str scaled-value))
+                        )
 
-                            ; Structured list
-                (list "number-s" (str scaled-value)))
-
-                    ; Converting a mixed fraction
-              (and
-               (not (nil? token))
-               (not (empty? token))
+                    ; Converting a mixed fraction 
+                    (and 
+                        (not (nil? token)) 
+                        (not (empty? token))
                         ; If it is a mixed fraction
-               (= (first token) "number-mixed"))
-              (do
-                (println "MIXED: " (second token))
-                (let [; Fraccion number
-                      original-str (second token)
-                      mixed-value (mixedFrac original-str) ; A ver si funciona con lo de adolf
-                      scaled-value (* scale-factor mixed-value)]
+                        (= (first token) "number-mixed")
+                    )
+                        (do
+                            (println "MIXED: " (second token))
+                            (let [
+                                ; Fraccion number
+                                original-str (second token) 
+                                mixed-value (mixedFrac original-str) ; A ver si funciona con lo de adolf
+                                scaled-value (* scale-factor mixed-value)
+                                ]
 
                                 ;(println "Proccessed: " mixed-value)
 
-                  (println "  Scaling mixed fraction:" mixed-value "×" scale-factor "=" scaled-value)
-
+                                (println "  Scaling mixed fraction:" mixed-value "×" scale-factor "=" scaled-value)
+                                
                                 ; Returns la lista con scaled mixed
-                  (list "number-s-mix" (str scaled-value))))
+                                (list "number-s-mix" (str scaled-value))
+                            )
+                        )
 
 
                     ; Checks if it is a mixed fraction that needs to be converted
 
                     ; Else it can just stay how it is
-              :else token))
-          token-line))
-    '("\t" "\t")) ; It is not a sequence
-    ;)
-  )
+                    :else token
+                ))
+            token-line)) 
+        '("\t" "\t")) ; It is not a sequence
+)
 
 ; Main function to manipulate one recipe at a time based on user preferences
 (defn manipulate-recipe [recipe user-options]
@@ -667,7 +731,7 @@
         tokenized-lines (nth recipe 2)
 
             ; Checks if user wants C
-        user-temp-units (user-celsius-check user-options)
+        user-temp-units (= "C" (second (second (second user-options))))
             ; Extracts number of portions that user wants, need read-string to handle that it's a string
         user-num-portions (read-string (second (second (nth user-options 2))))
 
@@ -684,7 +748,7 @@
 
             ; Amt to scale a recipe
         scale-factor (/ user-num-portions recipe-serves)]
-
+        (println "TEMP ADJ (F FALSE C TRUE): " user-temp-units)
     (println "Processing recipe:" recipe-name " with" recipe-serves " user wants  " user-num-portions "; scaled: " scale-factor "\n")
 
         ; Process all tokenized lines

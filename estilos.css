@@ -46,3 +46,13 @@ h1{
     padding: 20px 30px 20px 30px;
     border-radius: 10px;
 }
+
+.kw-ingredient, .kw-instruct, .kw-equip, .kw-category, .kw-author{
+    color: #891a14;
+    font-weight: 525;
+}
+
+.step-num{
+    color:#712127;
+    font-weight: 525;
+}
