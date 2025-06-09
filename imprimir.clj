@@ -197,7 +197,7 @@
   (println "\n-------HTML")
   (def nombre (subs options-file 0 (- (count options-file) 4)))
 
-  ; HTML con 
+  ; HTML con header
   (def htmlcompleto (str header "<div class='options'>"(html opt-tokenized)"</div>"))
 
   (spit (str "htmls/" nombre ".html") htmlcompleto)
