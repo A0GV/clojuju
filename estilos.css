@@ -1,11 +1,12 @@
 *{
     font-family: "Comic Neue", cursive;
-    font-weight: 500;
+    
     font-style: normal;
 }
 
 body{
     background-color: #f6eccf;
+    font-weight: 500;
     font-size: 25px;
     text-align: center;
 }
@@ -43,7 +44,7 @@ h1{
     background-color: #faf9f5;
     text-align: left;
     margin: 0 100px 0 100px;
-    padding: 20px 30px 20px 30px;
+    padding: 5px 30px 20px 30px;
     border-radius: 10px;
 }
 
@@ -52,7 +53,163 @@ h1{
     font-weight: 525;
 }
 
+.serves-amt{
+    background-color: #c76b3a;
+    color: #faf9f5;
+    padding: 0 10px 0 10px;
+}
+
+.number-s, .number-s-mix{
+    color: #845415;
+    font-weight: 510;
+}
+
 .step-num{
     color:#712127;
     font-weight: 525;
+}
+
+h2{
+    text-align: center;
+    font-weight: 550;
+    color: #a81d16;
+    padding: 10px 20px 10px 20px;
+    border-radius: 10px;
+}
+
+.prep-t{
+    background-color: #e57893;
+    padding: 0 10px 0 10px;
+    color: #faf9f5;
+}
+
+.cook-t{
+    background-color: #e56081;
+    padding: 0 10px 0 10px;
+    color: #faf9f5;
+}
+
+.total-t{
+    background-color: #e3486f;
+    padding: 0 10px 0 10px;
+    color: #faf9f5;
+}
+
+/* Ingredientes: Harinas, Azúcares y Frutos Secos */
+.ingredient-granulated-sugar,
+.ingredient-powdered-sugar,
+.ingredient-sugar,
+.ingredient-all-purpose-flour,
+.ingredient-almond-flour,
+.ingredient-flour,
+.ingredient-ground-almonds {
+    color: #845415;
+    font-weight: 510;
+}
+
+/* Ingredientes: Chocolate y Cocoa */
+.ingredient-cocoa,
+.ingredient-cocoa-powder,
+.ingredient-chocolate,
+.ingredient-dark-chocolate-chips {
+    color: #4e2a1e;
+    font-weight: 510;
+}
+
+/* Ingredientes: Huevos, Lácteos y Grasas */
+.ingredient-eggs,
+.ingredient-cream,
+.ingredient-heavy-cream,
+.ingredient-butter,
+.ingredient-unsalted-butter,
+.ingredient-oil,
+.ingredient-canola-oil,
+.ingredient-canola,
+.ingredient-extra-virgin-olive-oil,
+.ingredient-olive-oil, .ingredient-extra-light-olive-oil {
+    color: #7a3e0d;
+    font-weight: 510;
+}
+
+/* Ingredientes: Sales y Condimentos */
+.ingredient-salt,
+.ingredient-sea-salt,
+.ingredient-kosher-salt,
+.ingredient-pepper,
+.ingredient-black-pepper,
+.ingredient-red-pepper-flakes,
+.ingredient-garlic-salt, .ingredient-garlic,  .ingredient-garlic-butter{
+    color: #6f2e1f;
+    font-weight: 510;
+}
+
+/* Ingredientes: Cítricos y Extractos */
+.ingredient-vanilla,
+.ingredient-vanilla-extract,
+.ingredient-lemon-zest,
+.ingredient-lemon-zest-grated,
+.ingredient-lemon-juice,
+.ingredient-fresh-lemon-juice,
+.ingredient-lemon {
+    color: #917b00;
+    font-weight: 510;
+}
+
+/* Ingredientes: Pastas */
+.ingredient-pasta,
+.ingredient-dry-fettuccine-pasta,
+.ingredient-fettuccine-pasta {
+    color: #5c3b14;
+    font-weight: 510;
+}
+
+/* Ingredientes: Quesos */
+.ingredient-romano,
+.ingredient-grated-romano-cheese,
+.ingredient-romano-cheese,
+.ingredient-parmesan,
+.ingredient-grated-parmesan-cheese,
+.ingredient-parmesan-cheese {
+    color: #9a6728;
+    font-weight: 510;
+}
+
+/* Ingredientes: Hierbas y Ajo */
+.ingredient-garlic,
+.ingredient-garlic-clove,
+.ingredient-garlic-clove-minced,
+.ingredient-parsley,
+.ingredient-fresh-flat-leaf-parsley,
+.ingredient-flat-leaf-parsley,
+.ingredient-oregano,
+.ingredient-dried-oregano,
+.ingredient-rosemary,
+.ingredient-fresh-rosemary {
+    color: #345c2a;
+    font-weight: 510;
+}
+
+/* Ingredientes: Condimentos especiales */
+.ingredient-paprika,
+.ingredient-smoked-paprika,
+.ingredient-vinegar,
+.ingredient-white-wine-vinegar,
+.ingredient-baking-powder {
+    color: #8b4c7c;
+    font-weight: 510;
+}
+
+/* Ingredientes: Carnes */
+.ingredient-new-york-strip-steaks,
+.ingredient-top-sirloin-steaks,
+.ingredient-ribeye,
+.ingredient-steaks {
+    color: #712127;
+    font-weight: 510;
+}
+
+/* Ingredientes: Agua */
+.ingredient-water {
+    color: #3e5e6c;
+    font-weight: 510;
 }
