@@ -1528,6 +1528,27 @@
       ; Retornar la estructura
       final-results)))
 
+;;IMPRIMIR EN HTML
+(defn convert [class text]
+    (str "<text class='" class "'>" text " </text>" )
+)
+
+(defn resultado [linea]
+    (apply str (map (fn [x] (convert (first x) (second x))) linea))
+)
+
+(defn html [tokenized]
+ (apply str (map (fn [x] (str (resultado x) "<br/>")) tokenized))
+)
+
+(def header
+    "<link rel='stylesheet' ref='text/css' href='../estilos.css'/>
+    <link rel='preconnect' href='https://fonts.googleapis.com'>
+    <link rel='preconnect' href='https://fonts.gstatic.com' crossorigin>
+    <link href='https://fonts.googleapis.com/css2?family=Comic+Neue:ital,wght@0,300;0,400;0,700;1,300;1,400;1,700&display=swap' rel='stylesheet'>
+    <h1>los 3 mosqueteros recetas</h1>"
+)
+
 ; Función principal que checa recetas con el número de opciones seleccionadas y threads especificados 
 (defn main [options-file num-threads]
     ; Leer options file y guardar preferencias del usuario 
@@ -1550,6 +1571,10 @@
 
   (println "\n-------TOKENIZED")
   (println opt-tokenized)
+
+  ; HTML con header
+  (println "\n-------HTML")
+  (def htmlcompleto (str header "<div class='options'>"(html opt-tokenized)"</div>"))
 
     ; looking for user preferences servings amt
   (print "looking for servings: ")
