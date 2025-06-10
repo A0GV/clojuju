@@ -127,8 +127,8 @@
 (def rg-in (list "in" #"\bin\b"))
 
 (def rg-cup (list "cup" #"\bcups?\b"))
-(def rg-teaspoon (list "teaspoon" #"\bteaspoons?\b"))
-(def rg-tablespoon (list "tablespoon" #"\btablespoons?\b"))
+(def rg-teaspoon (list "teaspoon" #"\bteaspoons?|tsp\b"))
+(def rg-tablespoon (list "tablespoon" #"\b(?:tablespoons?|Tbsp)\b"))
 (def rg-ounce (list "ounce" #"\bounces?\b"))
 (def rg-pint (list "pint" #"\bpints?\b"))
 (def rg-dash (list "dash" #"\bdash(?:es)?\b"))
@@ -393,26 +393,23 @@
    "ingredient-rosemary" 131
    "ingredient-ground-almonds" 579})
 
-(def non-volume-ingredients
-  #{"ingredient-eggs" "ingredient-garlic-clove" "ingredient-chicken"})
+
 
 ; Lista de unidades que NO deben convertirse a cups
 (def non-volume-units
-  #{"large" "medium" "small" "clove" "cloves" "piece" "pieces"
-    "inches" "in"})
+  #{"large" "medium" "small" "clove" "cloves" "piece" "pieces"})
 
 
 
 (defn should-convert-to-volume? [ingredient-key unit-key target-unit]
-  (and (not (contains? non-volume-ingredients ingredient-key))
-       (cond
-         ; Si el sistema es métrico, permitir conversión de peso
-         (= target-unit "auto-metric")
-         (not (contains? #{"large" "medium" "small" "clove" "cloves" "piece" "pieces"} unit-key))
+  (cond
+    ; Si el sistema es métrico, convertir todo excepto unidades no-volumétricas
+    (= target-unit "auto-metric")
+    (not (contains? non-volume-units unit-key))
 
-         ; Para otros sistemas, mantener lógica original
-         :else
-         (not (contains? non-volume-units unit-key)))))
+    ; Para otros sistemas, mantener lógica original
+    :else
+    (not (contains? non-volume-units unit-key))))
 
 
 
@@ -806,7 +803,7 @@
     ; Si la unidad es libra, libras, pounds u onza → categoría "weight" (peso)
     (or (= unit-key "lb") (= unit-key "lbs") (= unit-key "pounds") (= unit-key "ounce")) "weight"
     ; Si la unidad es pulgadas → categoría "length" (longitud)
-    (or (= unit-key "in") (= unit-key "inches")) "length"
+    (or (= unit-key "in") (= unit-key "inches") (= unit-key "fract-in")) "length"
     ; Si la unidad es taza, cucharadita, cucharada o pinta → categoría "volume" (volumen)
     (or (= unit-key "cup") (= unit-key "teaspoon") (= unit-key "tablespoon") (= unit-key "pint")) "volume"
     ; Si ya está en gramos → categoría "metric" (métrico)
@@ -826,26 +823,6 @@
 
 ; Extrae y procesa la configuración de conversión de unidades desde los tokens del usuario
 ; Determina si usar conversión automática a métrico o conversión específica a una unidad
-(defn extract-output-config [tokens]
-  ; Busca token r-system en la línea
-  (let [r-system-token (find-token-type tokens "r-system")
-        ; Busca token system-metric en la línea
-        system-metric-token (find-token-type tokens "system-metric")
-        ; Filtra tokens que empiecen con "user-"
-        user-tokens (filter #(and (not (nil? %))
-                                  (clojure.string/starts-with? (str (first %)) "user-"))
-                            tokens)]
-    (cond
-      ; Si hay r-system Y system-metric → conversión automática a métrico
-      (and r-system-token system-metric-token)
-      {:system "r-system" :target-unit "auto-metric"}
-
-      ; Si hay r-system Y tokens de usuario → conversión específica
-      (and r-system-token (not (empty? user-tokens)))
-      {:system "r-system" :target-unit (first (first user-tokens))}
-
-      ; Si no hay configuración completa → retorna nil
-      :else nil)))
 
 ;; ========================================
 ;; FACTORES DE CONVERSIÓN DE INGREDIENTES
@@ -870,7 +847,7 @@
       (or (= unit-type "lb") (= unit-type "lbs") (= unit-type "pounds")) (:lb-to-grams conversions)
       ; Si es onza → devuelve factor oz-to-grams
       (= unit-type "ounce") (:oz-to-grams conversions)
-      ; Si es pinta → factor fijo 473.176 (1 pint = 473.176 ml ≈ 473.176 g para líquidos)
+      ; Si es pint → factor fijo 473.176 (1 pint = 473.176 ml ≈ 473.176 g para líquidos)
       (= unit-type "pint") 473.176
       ; Si es pulgadas → factor 1.0 (primera línea duplicada)
       (or (= unit-type "in") (= unit-type "inches")) 1.0
@@ -904,6 +881,8 @@
   ; Obtiene la categoría de la unidad (peso, longitud, volumen, etc.)
   (let [unit-category (get-unit-category unit-key)]
     (cond
+      (= unit-key "fract-in")
+      {:amount (* amount 2.54) :unit "cm"}
       ; Si la categoría es "weight" (peso)
       (= unit-category "weight")
       (cond
@@ -920,7 +899,7 @@
       (= unit-category "length")
       (cond
         ; Si es pulgadas → convierte a centímetros (* 2.54)
-        (or (= unit-key "in") (= unit-key "inches"))
+        (or (= unit-key "in") (= unit-key "inches") (= unit-key "fract-in"))
         {:amount (* amount 2.54) :unit "cm"}
         ; Otros casos de longitud → mantiene valor y unidad original
         :else {:amount amount :unit unit-key})
@@ -984,34 +963,22 @@
 
 ; Convierte los códigos internos de unidades a nombres legibles para mostrar al usuario
 ; Mapea tokens como "user-metric" a nombres de unidad como "gram"
-(defn get-output-unit-name [target-unit]
-  ; Mapea el token de configuración al nombre de unidad para mostrar
+(defn get-output-unit-name [target-unit converted-unit]
   (cond
-    ; user-metric → "gram"
+    ; Si es auto-métrico, usar la unidad convertida específica
+    (= target-unit "auto-metric")
+    (cond
+      (= converted-unit "gram") "grams"
+      (= converted-unit "cm") "cm"
+      :else converted-unit)
+
+    ; Otros casos mantener lógica original
     (= target-unit "user-metric") "gram"
-    ; user-cup → "cup"
     (= target-unit "user-cup") "cup"
-    ; user-teaspoon → "teaspoon"
     (= target-unit "user-teaspoon") "teaspoon"
-    ; user-tablespoon → "tablespoon"
     (= target-unit "user-tablespoon") "tablespoon"
-    ; Caso por defecto → "gram"
     :else "gram"))
 
-;; ========================================
-;; BÚSQUEDA DE TOKENS POR PREFIJO
-;; ========================================
-
-; Busca tokens que empiecen con un prefijo específico dentro de una línea
-; Útil para encontrar tokens como "ingredient-", "user-", etc.
-(defn find-token-by-prefix [token-line prefix]
-  ; Filtra tokens que no sean nil Y cuyo primer elemento empiece con el prefijo
-  (first (filter (fn [token]
-                   ; Verifica que el token no sea nil
-                   (and (not (nil? token))
-                        ; Verifica que el primer elemento del token empiece con el prefijo
-                        (clojure.string/starts-with? (str (first token)) prefix)))
-                 token-line)))
 
 ;; ========================================
 ;; CONFIGURACIÓN DEL SISTEMA DESDE PRIMERA LÍNEA
@@ -1115,7 +1082,8 @@
        ; Verifica que tenga al menos 2 elementos
        (>= (count token) 2)
        ; Verifica que el primer elemento empieze con "number-s"
-       (clojure.string/starts-with? (str (first token)) "number-s")))
+      (or (clojure.string/starts-with? (str (first token)) "number-s")
+            (= (str (first token)) "fract-in"))))
 
 ; Identifica si un token representa una unidad de medida convertible
 ; Reconoce unidades como cups, teaspoons, pounds, etc. que pueden ser convertidas
@@ -1124,8 +1092,8 @@
   (and (list? token)
        ; Verifica que tenga al menos 2 elementos
        (>= (count token) 2)
-       ; Verifica que el primer elemento esté en el conjunto de unidades convertibles
-       (contains? #{"cup" "teaspoon" "tablespoon" "lbs" "lb" "pounds" "ounce" "inches" "in" "gram"}
+       ; Verifica que el primer elemento esté en el set de unidades convertibles
+       (contains? #{"cup" "teaspoon" "tablespoon" "lbs" "lb" "pounds" "ounce" "inches" "in" "gram" "fract-in" "pint"}
                   (str (first token)))))
 
 ; Busca y extrae el token de ingrediente dentro de una línea de tokens
@@ -1158,8 +1126,11 @@
         ; Si es "number-s-mix" → parsea como fracción mixta escalada
         (= token-type "number-s-mix") (parse-mixed-scaled token-value)
         ; Otros casos → retorna el segundo elemento directamente
-        :else (second quantity-token)))))
-
+       (= token-type "fract-in")
+           (let [fraction-part (clojure.string/replace token-value #"\"" "")]
+             (parse-scaled-number fraction-part))
+           :else (second quantity-token)))
+         (second quantity-token)))
 
 ;; ========================================
 ;; CONVERSIÓN DE PARES CANTIDAD-UNIDAD
@@ -1188,13 +1159,15 @@
           (= target-unit "auto-metric")
           ; Convierte usando convert-to-metric
           (let [metric-conversion (convert-to-metric parsed-quantity unit-type ingredient-key)
-                ; Extrae cantidad convertida
+                          ; Extrae cantidad convertida
                 converted-amount (:amount metric-conversion)
-                ; Extrae unidad convertida
-                converted-unit (:unit metric-conversion)]
-            ; Retorna lista con cantidad y unidad convertidas
+                          ; Extrae unidad convertida
+                converted-unit (:unit metric-conversion)
+                          ; Obtiene nombre de unidad apropiado
+                output-unit-name (get-output-unit-name target-unit converted-unit)]
+                      ; Retorna lista con cantidad y unidad convertidas
             (list (list (first quantity-token) converted-amount)
-                  (list converted-unit (if (= converted-unit "gram") "grams" converted-unit))))
+                  (list converted-unit output-unit-name)))
 
           ; Si el objetivo es user-cup, user-teaspoon, o user-tablespoon
           (contains? #{"user-cup" "user-teaspoon" "user-tablespoon"} target-unit)
@@ -1203,7 +1176,7 @@
                 ; Convierte de gramos a la unidad objetivo
                 converted-amount (convert-from-grams grams ingredient-key target-unit)
                 ; Obtiene el nombre de la unidad para mostrar
-                output-unit-name (get-output-unit-name target-unit)]
+                output-unit-name (get-output-unit-name target-unit target-unit)]
             ; Retorna lista con cantidad y unidad convertidas
             (list (list (first quantity-token) converted-amount)
                   (list output-unit-name output-unit-name)))
@@ -1317,75 +1290,6 @@
 ;; FORMATEO EN LISTAS ANIDADAS 
 ;; ========================================
 
-; Convierte información de calorías a listas anidadas simples
-(defn format-calorie-data-as-lists [calorie-data]
-  ; Extrae el nombre de la receta del mapa de datos de calorías
-  (let [recipe-name (:recipe-name calorie-data)
-        ; Extrae el total de calorías del mapa
-        total-cals (:total-calories calorie-data)
-        ; Extrae el número de porciones del mapa
-        servings (:servings calorie-data)
-        ; Extrae las calorías por porción del mapa
-        cals-per-serving (:calories-per-serving calorie-data)
-        ; Extrae la lista de ingredientes con sus datos del mapa
-        ingredients (:ingredients calorie-data)]
-
-    ; Construye una lista anidada con toda la información de calorías
-    (list "calorie-info"
-          ; Sublista con el nombre de la receta
-          (list "recipe-name" recipe-name)
-          ; Sublista con el número de porciones
-          (list "servings" servings)
-          ; Sublista con calorías totales formateadas a 1 decimal
-          (list "total-calories" (format "%.1f" total-cals))
-          ; Sublista con calorías por porción formateadas a 1 decimal
-          (list "calories-per-serving" (format "%.1f" cals-per-serving))
-          ; Sublista con desglose detallado de ingredientes
-          (list "ingredient-breakdown"
-                ; Mapea cada ingrediente a una sublista con sus datos
-                (doall (map (fn [ing]
-                              ; Crea lista para cada ingrediente con nombre, gramos y calorías
-                              (list (:ingredient ing)
-                                    ; Sublista con gramos formateados a 1 decimal
-                                    (list "grams" (format "%.1f" (:grams ing)))
-                                    ; Sublista con calorías del ingrediente formateadas a 1 decimal
-                                    (list "calories" (format "%.1f" (:calories ing)))))
-                            ; Aplica la función a todos los ingredientes
-                            ingredients))))))
-
-; Combina receta con calorías en formato de lista anidada
-(defn combine-recipe-with-calories [recipe calorie-data]
-  ; Extrae el nombre de la receta (primer elemento)
-  (let [recipe-name (first recipe)
-        ; Extrae las líneas convertidas (tercer elemento) y las evalúa
-        converted-lines (doall (nth recipe 2))
-        ; Convierte los datos de calorías a formato de listas anidadas
-        calorie-info (format-calorie-data-as-lists calorie-data)]
-
-    ; Construye lista anidada combinando receta y datos de calorías
-    (list "recipe-data"
-          ; Sublista con el nombre de la receta
-          (list "name" recipe-name)
-          ; Sublista con las líneas de tokens convertidos
-          (list "converted-lines" converted-lines)
-          ; Incluye toda la información de calorías como sublista
-          calorie-info)))
-
-; Formatea todas las recetas con sus datos de calorías en estructura de listas anidadas
-(defn format-all-recipes-as-lists [converted-recipes calorie-data]
-  ; Construye estructura principal que contiene todas las recetas
-  (list "all-recipes"
-        ; Sublista con el conteo total de recetas
-        (list "total-count" (count converted-recipes))
-        ; Sublista principal que contiene todas las recetas procesadas
-        (list "recipes"
-              ; Mapea cada par receta-calorías a formato combinado
-              (doall (map (fn [recipe calorie-info]
-                            ; Combina cada receta individual con sus datos de calorías
-                            (combine-recipe-with-calories recipe calorie-info))
-                          ; Procesa todas las recetas convertidas con sus datos de calorías
-                          converted-recipes calorie-data)))))
-
 
 (defn format-final-results [converted-recipes calorie-data]
   ; Construye lista de resultados con estructura simplificada
@@ -1428,6 +1332,20 @@
 ;; PROCESAMIENTO DE LÍNEAS DE TOKENS
 ;; ========================================
 
+
+(defn normalize-special-tokens [token-line]
+  (mapcat (fn [token]
+            (if (and (list? token) (= (str (first token)) "fract-in"))
+              ; Expandir fract-in a dos tokens separados
+              (let [token-value (str (second token))
+                    fraction-part (clojure.string/replace token-value #"\"" "")]
+                ; Retorna lista de dos tokens: [número, unidad]
+                [(list "number-s" fraction-part) (list "inches" "inches")])
+              ; Token normal, retorna como lista de un elemento
+              [token]))
+          token-line))
+
+
 ; Procesa una línea completa de tokens aplicando conversiones según la configuración
 ; Coordina la conversión de cantidades individuales y pares cantidad-unidad
 (defn process-line [token-line config]
@@ -1435,18 +1353,10 @@
   (if (or (empty? token-line) (not config))
     token-line
     ; Busca ingrediente en la línea
-    (let [ingredient-token (find-ingredient-in-line token-line)
+    (let [normalized-tokens (normalize-special-tokens token-line)]
+     (let [ingredient-token (find-ingredient-in-line normalized-tokens)
           ; Busca pares cantidad-unidad en la línea
-          pairs (find-quantity-unit-pairs token-line)]
-      
-      ;; Un print para el debug
-      ;; (when (and ingredient-token (not (empty? token-line)))
-      ;;   (println "DEBUG process-line:")
-      ;;   (println "  Line:" token-line)
-      ;;   (println "  Ingredient found:" ingredient-token)
-      ;;   (println "  Pairs found:" pairs)
-      ;;   (println "  Config:" config))
-
+          pairs (find-quantity-unit-pairs normalized-tokens)]
       ; Si no hay pares o no hay ingrediente
       (if (or (empty? pairs) (not ingredient-token))
         ; Solo convertir cantidades individuales (sin conversión de unidades)
@@ -1456,7 +1366,7 @@
                  (list (first token) (convert-quantity-value token))
                  ; Otros tokens permanecen igual
                  token))
-             token-line)
+             normalized-tokens)
 
         ; Procesar pares cantidad-unidad (conversión completa)
         ; Extrae clave del ingrediente
@@ -1475,7 +1385,7 @@
                                           :new-unit (second converted-pair))))
                                pairs)]
           ; Aplica todas las conversiones a la línea de tokens
-          (apply-conversions token-line conversions))))))
+          (apply-conversions normalized-tokens conversions)))))))
 
 ;; ========================================
 ;; PROCESAMIENTO DE ARCHIVOS DE RECETAS
