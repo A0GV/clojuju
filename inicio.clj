@@ -1502,7 +1502,7 @@
                                               (list recipe-name original-lines (doall scaled-tokenized-lines)))))
                                         manipulated-recipes))
           calorie-data (doall (process-recipes-calories converted-recipes))
-          final-results (format-final-results converted-recipes calorie-data)]
+          final-results (second(format-final-results converted-recipes calorie-data))]
 
       (println "Applied unit conversions to scaled recipes:" (count converted-recipes))
       (println "Using user preference:" user-system-pref)
