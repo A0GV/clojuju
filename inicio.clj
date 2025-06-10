@@ -3,7 +3,7 @@
 (require '[clojure.string :as str]) ; To trim string
 
 ; Definiciones de regex
-;; Opciones de usuario
+;; Opciones de usuario 
 (def rg-system (list "r-system" #"^system:"))
 (def rg-u-cup (list "user-cup" #"^cup"))
 (def rg-u-tsp (list "user-tsp" #"^teaspoon"))
@@ -17,7 +17,7 @@
 (def rg-num-port (list "num-portions" #"^[0-9]+")) ; DECIMALS??
 
 (def rg-filter (list "r-filter" #"^filter:"))
-(def rg-all (list "r-all" #"^all")) ; Keeps all recipes
+(def rg-all (list "r-all" #"^all")) ; Keeps all recipes 
 (def rg-other (list "custom-filter" #"^[a-z]+"))
 
 ;; Dictionary of tokens
@@ -131,7 +131,7 @@
 (def rg-gram (list "gram" #"^grams?\b"))
 
 ;(def rg-phrases (list "phrases" #"^[a-zA-Z0-9 ,\.\(\)]+"))
-; Other words
+; Other words 
 (def rg-serves (list "serves-amt" #"^(?:Serves\s*-\s*|Servings\s*-\s*)[0-9]+"))
 
 (def rg-temp-c (list "temp-C" #"^[0-9]+°C"))
@@ -147,7 +147,7 @@
 (def rg-step-num (list "step-num" #"^[0-9]+\."))
 (def rg-fract-in (list "fract-in" #"[0-9]+/[0-9]+\""))
 
-; Keywords
+; Keywords 
 (def rg-ingredients (list "kw-ingredient" #"^Ingredients(\:)*"))
 (def rg-instruct (list "kw-instruct" #"^Instructions"))
 
@@ -262,7 +262,7 @@
                   ; Time mentions 
                   rg-pt rg-ct rg-tt
 
-                    ; Keywords
+                    ; Keywords 
                   rg-ingredients rg-instruct
 
                   rg-step-num
@@ -415,7 +415,7 @@
     ;(display "Input text: " input-text)
 
   (filter
-        ; Keep only defs that are not false
+        ; Keep only defs that are not false 
    (fn [match-result] (not (nil? match-result)))
         ; And now compare against every item in the specified dictionary
    (map
@@ -429,7 +429,7 @@
                     ; If nil, then just returns a false to later filter it out
                     ;(if (nil? matched-txt) false)
                     ;(if matched-txt
-                        ; Did find a match, builds list of token name and
+                        ; Did find a match, builds list of token name and 
                     ;    (list token-name matched-txt)
                     ;    nil)
 
@@ -443,11 +443,11 @@
             (if (= match-pos 0)
               (list token-name matched-txt)
               nil))
-                        ; Else just returns a null
+                        ; Else just returns a null 
           nil)))
     rg-dict)))
 
-; Uses text from tokens to find which one is longest
+; Uses text from tokens to find which one is longest 
 (defn get-max-len [match-list]
     ;(println "Get maximum length string of all of the matches")
   (apply max
@@ -455,7 +455,7 @@
           (fn [match] (count (second match)))
           match-list)))
 
-; Uses item matched from list and keeps only the one that meets the longest length found
+; Uses item matched from list and keeps only the one that meets the longest length found  
 (defn filter-max [matches max-len]
     ;(println "Keeping only the longest one")
   (filter
@@ -469,12 +469,12 @@
             ; Did not find a match, returns an unregognized for symbol
       (empty? all-found-matches) (list "NA" (subs input-item 0 1))
 
-            ; Only one match, just returns that one
+            ; Only one match, just returns that one 
       (= 1 (count all-found-matches)) (first all-found-matches)
 
-            ; Else finds the longest match of those found
+            ; Else finds the longest match of those found 
       :else
-                ; Finds longest match
+                ; Finds longest match 
       (let [longest-len (get-max-len all-found-matches)
             longest-matches (filter-max all-found-matches longest-len)]
 
@@ -488,13 +488,13 @@
     ; Base case input empty
   (cond
     (zero? (count (str/trim input)))
-        ;(count (str/trim input)) ; Returns length of trimmed
+        ;(count (str/trim input)) ; Returns length of trimmed 
     '() ; Returns done list
     :else
-        ; List of token and matched substring
+        ; List of token and matched substring 
     (let [input-trim (str/trim input) ; Para hacer llamadas, ya quita los empty spaces
 
-            ; Head de variables
+            ; Head de variables 
           type-txtmatch (longest-match input-trim rg-dict)
             ; Builds the substring
           extracted-txt (second type-txtmatch) ; Finds the token text
@@ -510,13 +510,13 @@
                        (str/trim (subs input-trim 1))
                 ; Match found: skip past the entire matched text
                        (str/trim (subs input-trim (+ pos-match-start length))))]
-            ; Ahora el body para build list
+            ; Ahora el body para build list 
       (cons
        (list (first type-txtmatch) extracted-txt)
        (tokenize rest-input rg-dict)))))
 
 ;; RECIPE HANDLING
-; Recieves the chunk (aka the list of file paths)
+; Recieves the chunk (aka the list of file paths) 
 (defn process-recipe [file-path]
   (let [; Read file lines w reader
         raw-lines (with-open [reader (io/reader file-path)] (doall (line-seq reader)))
@@ -527,12 +527,12 @@
 
         ; Tokenizar las líneas
         tokenized-lines (doall (map (fn [current-line]
-                            ; Proccesses line recipe if it is not empty
+                            ; Proccesses line recipe if it is not empty 
                                       (if (not (empty? (str/trim (first current-line))))
                                         (tokenize (first current-line) dict-recipe) ; Tokenize call
                                         '() ; List is empty
                                         ))recipe-lines))]
-        ; Returns list w file name, original lines just in case, and tokenized lines
+        ; Returns list w file name, original lines just in case, and tokenized lines 
         ;(println "\n\n\n")
     (println "Tokenized lines:" tokenized-lines)
     (list file-path recipe-lines tokenized-lines)))
@@ -543,7 +543,7 @@
   (doall (map process-recipe chunk)))
 
 ;; SUB-FUNCTIONS FOR RECIPE CONVERSION
-; Extrae val numerico de temp given
+; Extrae val numerico de temp given  
 (defn extract-num-value [num-string]
   (let [numeric-part (re-find #"\d+" num-string)]
         ; Returns num if it did match, 0 if it did not find the number
@@ -551,7 +551,7 @@
 
 ; Converts far to cel and returns it as a token C = (F - 32) / (9 / 5)
 (defn f-to-c [f-temp-string]
-  (let [; Calls helper funct to convert farenheit
+  (let [; Calls helper funct to convert farenheit 
         f-value (extract-num-value f-temp-string)
         c-value (/ (* (- f-value 32) 5) 9.0) ; Plugs into eq
         ]
@@ -559,7 +559,7 @@
 
 ; Converts far to cel and returns it as a token F = (C * (9 / 5)) +32
 (defn c-to-f [c-temp-string]
-  (let [; Calls helper funct to convert farenheit
+  (let [; Calls helper funct to convert farenheit 
         c-value (extract-num-value c-temp-string)
         f-value (+ (* c-value (/ 9 5)) 32) ; Plugs into eq
         ]
@@ -714,7 +714,7 @@
                         )
 
 
-                    ; Checks if it is a mixed fraction that needs to be converted
+                    ; Checks if it is a mixed fraction that needs to be converted 
 
                     ; Else it can just stay how it is
                     :else token
@@ -739,7 +739,7 @@
         recipe-serves
                 ; Extracts number value
         (extract-num-value
-                    ; Extract the token for serves
+                    ; Extract the token for serves 
          (second (first
                   (filter
                    (fn [token-line] (= (first token-line) "serves-amt"))
@@ -761,6 +761,13 @@
 ;; ========================================
 ;; Inicio de conversiones
 ;; ========================================
+
+; Función que calcula calorías basándose en gramos de ingrediente
+(defn calculate-calories [ingredient-token grams]
+  ; Busca las calorías por 100g del ingrediente en el diccionario IngCal100, si no existe devuelve 0
+  (let [calories-per-100g (get IngCal100 ingredient-token 0)]
+    ; Calcula las calorías: (gramos ÷ 100) × calorías_por_100g
+    (* (/ grams 100.0) calories-per-100g)))
 
 ;; ========================================
 ;; CÁLCULO DE CALORÍAS
@@ -805,7 +812,26 @@
 
 ; Extrae y procesa la configuración de conversión de unidades desde los tokens del usuario
 ; Determina si usar conversión automática a métrico o conversión específica a una unidad
+(defn extract-output-config [tokens]
+  ; Busca token r-system en la línea
+  (let [r-system-token (find-token-type tokens "r-system")
+        ; Busca token system-metric en la línea
+        system-metric-token (find-token-type tokens "system-metric")
+        ; Filtra tokens que empiecen con "user-"
+        user-tokens (filter #(and (not (nil? %))
+                                  (clojure.string/starts-with? (str (first %)) "user-"))
+                            tokens)]
+    (cond
+      ; Si hay r-system Y system-metric → conversión automática a métrico
+      (and r-system-token system-metric-token)
+      {:system "r-system" :target-unit "auto-metric"}
 
+      ; Si hay r-system Y tokens de usuario → conversión específica
+      (and r-system-token (not (empty? user-tokens)))
+      {:system "r-system" :target-unit (first (first user-tokens))}
+
+      ; Si no hay configuración completa → retorna nil
+      :else nil)))
 
 ;; ========================================
 ;; FACTORES DE CONVERSIÓN DE INGREDIENTES
@@ -980,6 +1006,11 @@
 ; Extrae y parsea la configuración del sistema de conversiones desde la primera línea del archivo
 ; Determina qué tipo de conversiones aplicar (métrico, cups, teaspoons, etc.)
 (defn parse-system-config [first-line]
+  ; DEBUG: Imprime estructura de la primera línea
+  (println "DEBUG parse-system-config:")
+  (println "  First line structure:" first-line)
+  (println "  First element:" (first first-line))
+  (println "  Second element:" (second first-line))
 
   ; ARREGLO: Comparar como strings
   (cond
@@ -1006,7 +1037,7 @@
     (let [system-token (first (filter #(and (list? %)
                                             (= (str (first %)) "system:")) first-line))]
       ; Si encuentra el token system
-      (when system-token
+      (if system-token
         ; Extrae el valor del sistema
         (let [system-value (second system-token)]
           (println "  Found nested system token with value:" system-value)
@@ -1102,7 +1133,7 @@
 ; Extrae y parsea el valor numérico del token manteniendo el tipo original
 (defn convert-quantity-value [quantity-token]
   ; Verifica que sea una lista con al menos 2 elementos
-  (when (and (list? quantity-token) (>= (count quantity-token) 2))
+  (if (and (list? quantity-token) (>= (count quantity-token) 2))
     ; Extrae el tipo del token (primer elemento)
     (let [token-type (str (first quantity-token))
           ; Extrae el valor del token (segundo elemento)
@@ -1114,6 +1145,7 @@
         (= token-type "number-s-mix") (parse-mixed-scaled token-value)
         ; Otros casos → retorna el segundo elemento directamente
         :else (second quantity-token)))))
+
 
 ;; ========================================
 ;; CONVERSIÓN DE PARES CANTIDAD-UNIDAD
@@ -1173,7 +1205,7 @@
 ; Evita errores al acceder a índices fuera del rango de la colección
 (defn nth-or-nil [coll n]
   ; Verifica que el índice sea válido (≥ 0 y < tamaño de colección)
-  (when (and (>= n 0) (< n (count coll)))
+  (if (and (>= n 0) (< n (count coll)))
     ; Si es válido, retorna el elemento en posición n
     (nth coll n)))
 
@@ -1193,7 +1225,7 @@
              ; Obtiene el siguiente token
                    (let [next-token (nth-or-nil tokens (inc idx))]
                ; Si existe siguiente token Y el actual es número escalado Y el siguiente es unidad convertible
-                     (when (and next-token
+                     (if (and next-token
                                 (is-scaled-number? token)
                                 (is-convertible-unit? next-token))
                  ; Retorna mapa con información del par
@@ -1202,6 +1234,126 @@
                         :quantity token             ; Token de cantidad
                         :unit next-token})))        ; Token de unidad
                  indexed-tokens))))
+
+
+
+
+
+
+
+;; ========================================
+;; EXTRACCIÓN DE INGREDIENTES Y CALORÍAS
+;; ========================================
+
+; Extrae información de ingredientes con cantidades en gramos de una línea tokenizada
+(defn extract-ingredient-grams [token-line]
+  (let [ingredient-token (find-ingredient-in-line token-line)]
+    (if ingredient-token
+      (let [ingredient-key (str (first ingredient-token))
+            ; Busca pares cantidad escalada + unidad de peso/volumen
+            quantity-unit-pairs (find-quantity-unit-pairs token-line)]
+        (if (not (empty? quantity-unit-pairs))
+          (let [first-pair (first quantity-unit-pairs)
+                quantity-value (convert-quantity-value (:quantity first-pair))
+                unit-type (str (first (:unit first-pair)))
+                ; Convierte todo a gramos para cálculo de calorías
+                grams (convert-to-grams quantity-value ingredient-key unit-type)]
+            {:ingredient ingredient-key :grams grams}))))))
+
+; Calcula las calorías totales de una receta procesada
+(defn calculate-recipe-calories [processed-recipe]
+  (let [recipe-name (first processed-recipe)
+        converted-lines (nth processed-recipe 2)
+        ; Extrae ingredientes con gramos de todas las líneas
+        ingredients-with-grams (filter identity
+                                       (map extract-ingredient-grams converted-lines))
+        ; Calcula calorías para cada ingrediente
+        calories-per-ingredient (map (fn [ing-data]
+                                       (let [ingredient (:ingredient ing-data)
+                                             grams (:grams ing-data)
+                                             calories (calculate-calories ingredient grams)]
+                                         {:ingredient ingredient 
+                                          :grams grams 
+                                          :calories calories}))
+                                     ingredients-with-grams)
+        ; Suma todas las calorías
+        total-calories (reduce + (map :calories calories-per-ingredient))
+        ; Extrae número de porciones
+        serves-token (first (filter identity
+                                    (map (fn [line]
+                                           (first (filter #(= (str (first %)) "serves-amt") line)))
+                                         converted-lines)))
+        servings (if serves-token (extract-num-value (second serves-token)) 1)
+        calories-per-serving (/ total-calories servings)]
+    
+    {:recipe-name recipe-name
+     :ingredients calories-per-ingredient
+     :total-calories total-calories
+     :servings servings
+     :calories-per-serving calories-per-serving}))
+
+; Procesa múltiples recetas y calcula sus calorías
+(defn process-recipes-calories [converted-recipes]
+  (map calculate-recipe-calories converted-recipes))
+
+
+
+
+;; ========================================
+;; FORMATEO EN LISTAS ANIDADAS 
+;; ========================================
+
+; Convierte información de calorías a listas anidadas simples
+(defn format-calorie-data-as-lists [calorie-data]
+  (let [recipe-name (:recipe-name calorie-data)
+        total-cals (:total-calories calorie-data)
+        servings (:servings calorie-data)
+        cals-per-serving (:calories-per-serving calorie-data)
+        ingredients (:ingredients calorie-data)]
+
+    (list "calorie-info"
+          (list "recipe-name" recipe-name)
+          (list "servings" servings)
+          (list "total-calories" (format "%.1f" total-cals))
+          (list "calories-per-serving" (format "%.1f" cals-per-serving))
+          (list "ingredient-breakdown"
+                (doall (map (fn [ing]
+                              (list (:ingredient ing)
+                                    (list "grams" (format "%.1f" (:grams ing)))
+                                    (list "calories" (format "%.1f" (:calories ing)))))
+                            ingredients))))))
+
+; Combina receta con calorías en formato de lista anidada
+(defn combine-recipe-with-calories [recipe calorie-data]
+  (let [recipe-name (first recipe)
+        converted-lines (doall (nth recipe 2))
+        calorie-info (format-calorie-data-as-lists calorie-data)]
+
+    (list "recipe-data"
+          (list "name" recipe-name)
+          (list "converted-lines" converted-lines)
+          calorie-info)))
+
+; Formatea todas las recetas con sus datos de calorías en estructura de listas anidadas
+(defn format-all-recipes-as-lists [converted-recipes calorie-data]
+  (list "all-recipes"
+        (list "total-count" (count converted-recipes))
+        (list "recipes"
+              (doall (map (fn [recipe calorie-info]
+                            (combine-recipe-with-calories recipe calorie-info))
+                          converted-recipes calorie-data)))))
+
+
+(defn format-final-results [converted-recipes calorie-data]
+  (list "results"
+        (doall (map (fn [recipe calorie-info]
+                      (list (first recipe)           ; nombre de receta
+                            (nth recipe 2)           ; tokens convertidos
+                            (format "%.1f kcal total, %.1f per serving"
+                                    (:total-calories calorie-info)
+                                    (:calories-per-serving calorie-info))))
+                    converted-recipes calorie-data))))
+
 
 ;; ========================================
 ;; APLICACIÓN DE CONVERSIONES A TOKENS
@@ -1238,6 +1390,14 @@
     (let [ingredient-token (find-ingredient-in-line token-line)
           ; Busca pares cantidad-unidad en la línea
           pairs (find-quantity-unit-pairs token-line)]
+      
+      ;; Un print para el debug
+      ;; (when (and ingredient-token (not (empty? token-line)))
+      ;;   (println "DEBUG process-line:")
+      ;;   (println "  Line:" token-line)
+      ;;   (println "  Ingredient found:" ingredient-token)
+      ;;   (println "  Pairs found:" pairs)
+      ;;   (println "  Config:" config))
 
       ; Si no hay pares o no hay ingrediente
       (if (or (empty? pairs) (not ingredient-token))
@@ -1320,6 +1480,8 @@
 ; Analyze all recipes and apply manipulations
 ; Analyze all recipes and apply manipulations
 ; Analyze all recipes and apply manipulations
+; Analyze all recipes and apply manipulations with calorie calculation
+; Analyze all recipes and apply manipulations with calorie calculation (NESTED LISTS OUTPUT)
 (defn analyze-recipes [processed-recipes user-tokens]
   (let [manipulated-recipes (doall (map (fn [recipe]
                                           (manipulate-recipe recipe user-tokens))
@@ -1336,18 +1498,25 @@
                                                 recipe-data (cons system-config scaled-tokenized-lines)
                                                 converted-data (convert-recipe recipe-data)]
                                             (if converted-data
-                                              (list recipe-name original-lines converted-data)
-                                              (list recipe-name original-lines scaled-tokenized-lines))))
-                                        manipulated-recipes))]
+                                              (list recipe-name original-lines (doall converted-data))
+                                              (list recipe-name original-lines (doall scaled-tokenized-lines)))))
+                                        manipulated-recipes))
+          calorie-data (doall (process-recipes-calories converted-recipes))
+          final-results (format-final-results converted-recipes calorie-data)]
 
       (println "Applied unit conversions to scaled recipes:" (count converted-recipes))
       (println "Using user preference:" user-system-pref)
 
-      converted-recipes)))
+      ; Solo mostrar la estructura de lista anidada
+      (println "\nFINAL RESULTS:")
+      (println final-results)
 
-; Función principal que checa recetas con el número de opciones seleccionadas y threads especificados
+      ; Retornar la estructura
+      final-results)))
+
+; Función principal que checa recetas con el número de opciones seleccionadas y threads especificados 
 (defn main [options-file num-threads]
-    ; Leer options file y guardar preferencias del usuario
+    ; Leer options file y guardar preferencias del usuario 
   (def options-path (str "options/" options-file))
   (println "\n-------FILE PATH: " options-path)
 
@@ -1378,8 +1547,8 @@
   (println (str "Número de threads: " num-threads))
 
     ; Definir rutas de recetas
-    ;(def ruta ["recipes/Best Homemade Brownies-1.txt"
-    ;           "recipes/Chimichurri Sauce.txt"
+    ;(def ruta ["recipes/Best Homemade Brownies-1.txt" 
+    ;           "recipes/Chimichurri Sauce.txt" 
     ;           "recipes/Lemon Cake-1.txt"
     ;           "recipes/Fettuccine Alfredo.txt"
     ;           "recipes/Pan-Seared Steak with Garlic Butter.txt"])
@@ -1407,27 +1576,28 @@
   (def exec-time
     (time
      (do
-                ; Process the recipes
+                ; Process the recipes 
        (def recipes-processed
          (apply concat ; Aplana chunks pero keeps recipes separated
                         ; Sends the chunks of recipes (list of recipes) to proccess them
                 (pmap process-chunk data-chunks)))
                 ; Print the tokens
-       (doall (map (fn [x] (println (nth x 2) "\n\nNext Recipe Tokens:\n")) recipes-processed)) ; Check all the recipes
+       (doall (map (fn [x] (println (nth x 2) "\n\nNext Recipe Tokens:\n")) recipes-processed)) ; Check all the recipes 
 
                 ; Passes tokenized recipe and the tokens of user customization
-       (def fix-recipes (analyze-recipes recipes-processed opt-tokenized)))))
+       (def fix-recipes (second (analyze-recipes recipes-processed opt-tokenized))))))
 
   (println exec-time)
   (println "Fixed recipes")
 
-    ; Structure of recipes
+    ; Structure of recipes 
     ;(println (nth (first fix-recipes) 0) )
     ;(println (nth (first fix-recipes) 1) )
     ;(println (nth (first fix-recipes) 2) )
 
     ;(println (nth (map (first) fix-recipes) 2) )
-  (doall (map (fn [x] (println (nth x 2) "\n\nFINAL Recipe Tokens:\n")) fix-recipes)) ; Check all the recipes
+  ;; (doall (map (fn [x] (println (nth x 2) "\n\nFINAL Recipe Tokens:\n")) fix-recipes)) ; Check all the recipes 
+    (println fix-recipes)
 
 
 
@@ -1435,9 +1605,9 @@
     ; Tokenización - cantidades, unidades de medida, numero de porciones y temperaturas
     ; Convertir unidades - tazas, teaspoons, cups, gramos, Fahrenheit a Celsius,  y viceversa
     ; Calorias totales y por porcion (base de gramos)
-    ; Escala arriba o abajo. Tu programa debe calcular la cantidad de ingredientes necesarios para escalar la receta a un numero de porciones determinado. ACTUALIZAR LO ANTERIOR
+    ; Escala arriba o abajo. Tu programa debe calcular la cantidad de ingredientes necesarios para escalar la receta a un numero de porciones determinado. ACTUALIZAR LO ANTERIOR 
     ; Filtra:  el programa debe ser capaz de devolver solo las recetas que incluyan una palabra o frase determinada. Revisa la sección Entradas adicionales.
-    ; Agrega texto con resultados (speed up y aceleración para el numero de hilos)
+    ; Agrega texto con resultados (speed up y aceleración para el numero de hilos) 
 
     ;(println "\nContenido de las recetas:")
     ;(println lectura)
