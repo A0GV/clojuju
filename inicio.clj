@@ -1319,53 +1319,87 @@
 
 ; Convierte información de calorías a listas anidadas simples
 (defn format-calorie-data-as-lists [calorie-data]
+  ; Extrae el nombre de la receta del mapa de datos de calorías
   (let [recipe-name (:recipe-name calorie-data)
+        ; Extrae el total de calorías del mapa
         total-cals (:total-calories calorie-data)
+        ; Extrae el número de porciones del mapa
         servings (:servings calorie-data)
+        ; Extrae las calorías por porción del mapa
         cals-per-serving (:calories-per-serving calorie-data)
+        ; Extrae la lista de ingredientes con sus datos del mapa
         ingredients (:ingredients calorie-data)]
 
+    ; Construye una lista anidada con toda la información de calorías
     (list "calorie-info"
+          ; Sublista con el nombre de la receta
           (list "recipe-name" recipe-name)
+          ; Sublista con el número de porciones
           (list "servings" servings)
+          ; Sublista con calorías totales formateadas a 1 decimal
           (list "total-calories" (format "%.1f" total-cals))
+          ; Sublista con calorías por porción formateadas a 1 decimal
           (list "calories-per-serving" (format "%.1f" cals-per-serving))
+          ; Sublista con desglose detallado de ingredientes
           (list "ingredient-breakdown"
+                ; Mapea cada ingrediente a una sublista con sus datos
                 (doall (map (fn [ing]
+                              ; Crea lista para cada ingrediente con nombre, gramos y calorías
                               (list (:ingredient ing)
+                                    ; Sublista con gramos formateados a 1 decimal
                                     (list "grams" (format "%.1f" (:grams ing)))
+                                    ; Sublista con calorías del ingrediente formateadas a 1 decimal
                                     (list "calories" (format "%.1f" (:calories ing)))))
+                            ; Aplica la función a todos los ingredientes
                             ingredients))))))
 
 ; Combina receta con calorías en formato de lista anidada
 (defn combine-recipe-with-calories [recipe calorie-data]
+  ; Extrae el nombre de la receta (primer elemento)
   (let [recipe-name (first recipe)
+        ; Extrae las líneas convertidas (tercer elemento) y las evalúa
         converted-lines (doall (nth recipe 2))
+        ; Convierte los datos de calorías a formato de listas anidadas
         calorie-info (format-calorie-data-as-lists calorie-data)]
 
+    ; Construye lista anidada combinando receta y datos de calorías
     (list "recipe-data"
+          ; Sublista con el nombre de la receta
           (list "name" recipe-name)
+          ; Sublista con las líneas de tokens convertidos
           (list "converted-lines" converted-lines)
+          ; Incluye toda la información de calorías como sublista
           calorie-info)))
 
 ; Formatea todas las recetas con sus datos de calorías en estructura de listas anidadas
 (defn format-all-recipes-as-lists [converted-recipes calorie-data]
+  ; Construye estructura principal que contiene todas las recetas
   (list "all-recipes"
+        ; Sublista con el conteo total de recetas
         (list "total-count" (count converted-recipes))
+        ; Sublista principal que contiene todas las recetas procesadas
         (list "recipes"
+              ; Mapea cada par receta-calorías a formato combinado
               (doall (map (fn [recipe calorie-info]
+                            ; Combina cada receta individual con sus datos de calorías
                             (combine-recipe-with-calories recipe calorie-info))
+                          ; Procesa todas las recetas convertidas con sus datos de calorías
                           converted-recipes calorie-data)))))
 
 
 (defn format-final-results [converted-recipes calorie-data]
+  ; Construye lista de resultados con estructura simplificada
   (list "results"
+        ; Mapea cada par receta-calorías a formato final simplificado
         (doall (map (fn [recipe calorie-info]
-                      (list (first recipe)           ; nombre de receta
-                            (nth recipe 2)           ; tokens convertidos
-                            (format "%.1f kcal total, %.1f per serving"
-                                    (:total-calories calorie-info)
-                                    (:calories-per-serving calorie-info))))
+                      ; Crea lista con: nombre, tokens, calorías totales, calorías por porción
+                      (list (first recipe)           ; nombre de receta (primer elemento)
+                            (nth recipe 2)           ; tokens convertidos (tercer elemento)
+                            ; Token separado para calorías totales
+                            (list "total-cal" (:total-calories calorie-info))
+                            ; Token separado para calorías por porción
+                            (list "serving-cal" (:calories-per-serving calorie-info))))
+                    ; Procesa todas las recetas con sus datos de calorías
                     converted-recipes calorie-data))))
 
 
@@ -1599,7 +1633,7 @@
        (doall (map (fn [x] (println (nth x 2) "\n\nNext Recipe Tokens:\n")) recipes-processed)) ; Check all the recipes 
 
                 ; Passes tokenized recipe and the tokens of user customization
-       (def fix-recipes (second (analyze-recipes recipes-processed opt-tokenized))))))
+       (def fix-recipes (analyze-recipes recipes-processed opt-tokenized)))))
 
   (println exec-time)
   (println "Fixed recipes")
