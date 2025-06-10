@@ -1300,9 +1300,9 @@
                       (list (first recipe)           ; nombre de receta (primer elemento)
                             (nth recipe 2)           ; tokens convertidos (tercer elemento)
                             ; Token separado para calorías totales
-                            (list "total-cal" (:total-calories calorie-info))
+                            (list (list "total-cal" (str "Total calories: " (:total-calories calorie-info))))
                             ; Token separado para calorías por porción
-                            (list "serving-cal" (:calories-per-serving calorie-info))))
+                            (list (list "serving-cal" (str "Calories per serving: " (:calories-per-serving calorie-info))))))
                     ; Procesa todas las recetas con sus datos de calorías
                     converted-recipes calorie-data))))
 
@@ -1433,44 +1433,78 @@
 ;; FIN DE CÓDIGO DE CONVERSIONES
 ;; ==============================
 
-
-
-; Analyze all recipes and apply manipulations
-; Analyze all recipes and apply manipulations
-; Analyze all recipes and apply manipulations
 ; Analyze all recipes and apply manipulations with calorie calculation
 ; Analyze all recipes and apply manipulations with calorie calculation (NESTED LISTS OUTPUT)
 (defn analyze-recipes [processed-recipes user-tokens]
-  (let [manipulated-recipes (doall (map (fn [recipe]
-                                          (manipulate-recipe recipe user-tokens))
-                                        processed-recipes))]
+  (let [filtro (first (second (last user-tokens)))]
+    (if (= filtro "r-all")
+      (let [manipulated-recipes (doall (map (fn [recipe]
+                                              (manipulate-recipe recipe user-tokens))
+                                            processed-recipes))]
 
-    (println "Processed" (count manipulated-recipes) "recipes")
+        (println "Processed" (count manipulated-recipes) "recipes")
 
-    (let [user-system-pref (second (second (first user-tokens)))
-          converted-recipes (doall (map (fn [recipe]
-                                          (let [recipe-name (first recipe)
-                                                original-lines (second recipe)
-                                                scaled-tokenized-lines (nth recipe 2)
-                                                system-config (list "system:" user-system-pref)
-                                                recipe-data (cons system-config scaled-tokenized-lines)
-                                                converted-data (convert-recipe recipe-data)]
-                                            (if converted-data
-                                              (list recipe-name original-lines (doall converted-data))
-                                              (list recipe-name original-lines (doall scaled-tokenized-lines)))))
-                                        manipulated-recipes))
-          calorie-data (doall (process-recipes-calories converted-recipes))
-          final-results (second(format-final-results converted-recipes calorie-data))]
+        (let [user-system-pref (second (second (first user-tokens)))
+              converted-recipes (doall (map (fn [recipe]
+                                              (let [recipe-name (first recipe)
+                                                    original-lines (second recipe)
+                                                    scaled-tokenized-lines (nth recipe 2)
+                                                    system-config (list "system:" user-system-pref)
+                                                    recipe-data (cons system-config scaled-tokenized-lines)
+                                                    converted-data (convert-recipe recipe-data)]
+                                                (if converted-data
+                                                  (list recipe-name original-lines (doall converted-data))
+                                                  (list recipe-name original-lines (doall scaled-tokenized-lines)))))
+                                            manipulated-recipes))
+              calorie-data (doall (process-recipes-calories converted-recipes))
+              final-results (second(format-final-results converted-recipes calorie-data))]
 
-      (println "Applied unit conversions to scaled recipes:" (count converted-recipes))
-      (println "Using user preference:" user-system-pref)
+          (println "Applied unit conversions to scaled recipes:" (count converted-recipes))
+          (println "Using user preference:" user-system-pref)
 
-      ; Solo mostrar la estructura de lista anidada
-      (println "\nFINAL RESULTS:")
-      (println final-results)
+          ; Solo mostrar la estructura de lista anidada
+          (println "\nFINAL RESULTS:")
+          (println final-results)
 
-      ; Retornar la estructura
-      final-results)))
+          ; Retornar la estructura
+          final-results)
+      )
+      (let [recetas-filtradas 
+                    (filter (fn [recipe] (some
+                                (fn [token-line]
+                                    (some (fn [token] (= (second token) (second (second (last user-tokens))))) token-line))
+                                (nth recipe 2)))
+                        processed-recipes)]
+                (println "Recetas filtradas:" (count recetas-filtradas))
+                (doall (map (fn [recipe] (manipulate-recipe recipe user-tokens)) recetas-filtradas))
+                (let [user-system-pref (second (second (first user-tokens)))
+                converted-recipes (doall (map (fn [recipe]
+                                                (let [recipe-name (first recipe)
+                                                      original-lines (second recipe)
+                                                      scaled-tokenized-lines (nth recipe 2)
+                                                      system-config (list "system:" user-system-pref)
+                                                      recipe-data (cons system-config scaled-tokenized-lines)
+                                                      converted-data (convert-recipe recipe-data)]
+                                                  (if converted-data
+                                                    (list recipe-name original-lines (doall converted-data))
+                                                    (list recipe-name original-lines (doall scaled-tokenized-lines)))))
+                                              recetas-filtradas))
+                calorie-data (doall (process-recipes-calories converted-recipes))
+                final-results (second(format-final-results converted-recipes calorie-data))]
+
+            (println "Applied unit conversions to scaled recipes:" (count converted-recipes))
+            (println "Using user preference:" user-system-pref)
+
+            ; Solo mostrar la estructura de lista anidada
+            (println "\nFINAL RESULTS:")
+            (println final-results)
+
+            ; Retornar la estructura
+            final-results)
+      )
+    )
+  )
+)
 
 ;;IMPRIMIR EN HTML
 (defn convert [class text]
@@ -1580,11 +1614,34 @@
 
     ;(println (nth (map (first) fix-recipes) 2) )
   ;; (doall (map (fn [x] (println (nth x 2) "\n\nFINAL Recipe Tokens:\n")) fix-recipes)) ; Check all the recipes 
-    (println fix-recipes)
+    ;(println fix-recipes)
 
+    (def onlyname (map (fn [x] (subs (nth x 0) 8 (- (count (nth x 0)) 4))) fix-recipes))
+    ;Nombres de los htmls (buscar que no haya conflicto si se duplican)
 
-
-
+    ;IMPRIMIR HTMLS
+    (def receras 
+        (map (fn [x] 
+                (let [tokenized-lines (nth x 1)
+                    first-line (list (second tokenized-lines))
+                    rest-lines (rest tokenized-lines)
+                    ; Crea el h2 para la primera línea
+                    h2-line (str "<h2>" (html first-line) "</h2>")
+                    ; Convierte el resto normalmente
+                    rest-html (html rest-lines)]
+                ; Combina todo
+                (str h2-line rest-html)))
+            fix-recipes)
+    )
+    
+    ;Elimino los espacios en el nombre
+    (def nombre (map (fn [x] (clojure.string/replace x #" " "")) onlyname))
+    (println nombre)
+    (doall (map (fn [x y] (spit (str "htmls/" x ".html") (str htmlcompleto "</br></br><div class='receta'>" y "</div>"))) nombre receras))
+    (println "Se imprimió html de cada receta encontrada")
+    
+    ;(doall (map (fn [x] (println (nth x 1)"\n\nFINAL Recipe Tokens:\n")) fix-recipes))
+    ;(doall (map (fn [x] (println (html (nth x 3)))) fix-recipes))
     ; Tokenización - cantidades, unidades de medida, numero de porciones y temperaturas
     ; Convertir unidades - tazas, teaspoons, cups, gramos, Fahrenheit a Celsius,  y viceversa
     ; Calorias totales y por porcion (base de gramos)
@@ -1605,5 +1662,5 @@
 ;(main "options1.txt" 10)
 
 (main "options1.txt" 1)
-
+;(main "options2.txt" 1)
 (println "Mixed convert: "  (mixedFrac "1 1/2")) ; Test fraction to make sure its an int
