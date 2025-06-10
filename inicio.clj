@@ -145,6 +145,9 @@
 (def rg-temp-c (list "temp-C" #"^[0-9]+°C"))
 (def rg-temp-f (list "temp-F" #"^[0-9]+°F"))
 
+(def rg-temp-f-range (list "temp-f-range" #"^[0-9]+°F\s*-\s*[0-9]+°F")) 
+(def rg-temp-c-range (list "temp-c-range" #"^[0-9]+°C\s*-\s*[0-9]+°C")) 
+
 (def rg-pt (list "prep-t" #"^Prep Time\:\s*[0-9]+\s*(?:mins|minutes)"))
 (def rg-ct (list "cook-t" #"^Cook Time\:\s*[0-9]+\s*(?:mins|minutes)"))
 (def rg-tt (list "total-t" #"^Total Time\:\s*[0-9]+\s*(?:mins|minutes)"))
@@ -270,6 +273,7 @@
 
                     ; Adding
                   rg-serves
+                  rg-temp-f-range rg-temp-c-range ; First to check for ranges
                   rg-temp-c rg-temp-f
                     ; Time mentions 
                   rg-pt rg-ct rg-tt
