@@ -1,3 +1,5 @@
+;;INICIO CON FILTRO MIO
+
 (println "¡Hola, mundo!")
 (require '[clojure.java.io :as io])
 (require '[clojure.string :as str]) ; To trim string
@@ -52,8 +54,10 @@
 (def rg-dark-chocolate-chips (list "ingredient-dark-chocolate-chips" #"^\bdark\s+chocolate\s+chips\b"))
 (def rg-sea-salt (list "ingredient-sea-salt" #"^\bsea\s+salt\b"))
 (def rg-kosher-salt (list "ingredient-kosher-salt" #"^\bkosher\s+salt\b"))
-(def rg-canola-oil (list "ingredient-canola-oil" #"^\bcanola\s+oil\b"))
+(def rg-canola-oil (list "ingredient-canola-oil" #"^\bcanola\s\(+oil\)?\b"))
+(def rg-canola (list "ingredient-canola-oil" #"^\bcanola\s"))
 (def rg-extra-virgin-olive-oil (list "ingredient-extra-virgin-olive-oil" #"^\bextra-virgin\s+olive\s+oil\b"))
+(def rg-extra-virgin-light-oil (list "ingredient-extra-light-olive-oil" #"^\bextra\s+light\s+olive\s+oil\b"))
 (def rg-olive-oil (list "ingredient-olive-oil" #"^\bolive\s+oil\b"))
 (def rg-vanilla-extract (list "ingredient-vanilla-extract" #"^\bvanilla\s+extract\b"))
 (def rg-lemon-zest-grated (list "ingredient-lemon-zest-grated" #"^\blemon\s+zest\s+\(grated\)\b"))
@@ -69,26 +73,29 @@
 (def rg-white-wine-vinegar (list "ingredient-white-wine-vinegar" #"^\bwhite\s+wine\s+vinegar\b"))
 (def rg-garlic-clove-minced (list "ingredient-garlic-clove-minced" #"^\bgarlic\s+clove\s+\(minced\)\b"))
 (def rg-garlic-clove (list "ingredient-garlic-clove" #"^\bgarlic\s+clove\b"))
+(def rg-garlic-butter (list "ingredient-garlic-butter" #"^\bgarlic\s+butter\b"))
+(def rg-garlic-solo (list "ingredient-garlic" #"^\bgarlic\b"))
 (def rg-dried-oregano (list "ingredient-dried-oregano" #"^\bdried\s+oregano\b"))
 (def rg-smoked-paprika (list "ingredient-smoked-paprika" #"^\bsmoked\s+paprika\b"))
 (def rg-fresh-flat-leaf-parsley (list "ingredient-fresh-flat-leaf-parsley" #"^\bfresh\s+flat-leaf\s+parsley\b"))
 (def rg-flat-leaf-parsley (list "ingredient-flat-leaf-parsley" #"^\bflat-leaf\s+parsley\b"))
-(def rg-new-york-strip-steaks (list "ingredient-new-york-strip-steaks" #"^\bnew\s+york\s+strip\s+steaks?\b"))
-(def rg-top-sirloin-steaks (list "ingredient-top-sirloin-steaks" #"^\btop\s+sirloin\s+steaks?\b"))
-(def rg-ribeye (list "ingredient-ribeye" #"^\bribeye\b"))
+(def rg-new-york-strip-steaks (list "ingredient-new-york-strip-steaks" #"^(?i:\bnew\s+york\s+strip\s+steaks?\b)"))
+(def rg-top-sirloin-steaks (list "ingredient-top-sirloin-steaks" #"^(?i:\btop\s+sirloin\s+steaks?\b)"))
+(def rg-ribeye (list "ingredient-ribeye" #"^\b(?i:r)ibeye\b"))
 (def rg-steaks (list "ingredient-steaks" #"^\bsteaks?\b"))
 (def rg-black-pepper (list "ingredient-black-pepper" #"^\bblack\s+pepper\b"))
 (def rg-unsalted-butter (list "ingredient-unsalted-butter" #"^\bunsalted\s+butter\b"))
 (def rg-fresh-rosemary (list "ingredient-fresh-rosemary" #"^\bfresh\s+rosemary\b"))
 (def rg-rosemary (list "ingredient-rosemary" #"^\brosemary\b"))
 (def rg-ground-almonds (list "ingredient-ground-almonds" #"^\bground\s+almonds?\b"))
+(def rg-vegetable-oil (list "ingredient-olive-oil" #"^\bvegetable\s+oil\b"))
 
 ; Regex para ingredientes (case sensitive) - manteniendo los originales
 (def rg-sugar (list "ingredient-sugar" #"^\b(?:granulated\s+)?sugar\b"))
 (def rg-flour (list "ingredient-flour" #"^\b(?:all-purpose\s+|almond\s+)?flour\b"))
 (def rg-cocoa (list "ingredient-cocoa" #"^\bcocoa\s+powder\b"))
 (def rg-powdered-sugar (list "ingredient-powdered-sugar" #"^\bpowdered\s+sugar\b"))
-(def rg-chocolate (list "ingredient-chocolate" #"\bdark\s+chocolate\s+chips\b"))
+(def rg-chocolate (list "ingredient-chocolate" #"\b(?:dark\s)?+chocolate\s+chips\b"))
 (def rg-salt (list "ingredient-salt" #"\b(?:sea\s+|kosher\s+)?salt\b"))
 (def rg-eggs (list "ingredient-eggs" #"\beggs?\b"))
 (def rg-oil (list "ingredient-oil" #"\b(?:canola\s+|extra-virgin\s+olive\s+)?oil\b"))
@@ -96,17 +103,18 @@
 (def rg-vanilla (list "ingredient-vanilla" #"\bvanilla(?:\s+extract)?\b"))
 (def rg-baking-powder (list "ingredient-baking-powder" #"\bbaking\s+powder\b"))
 (def rg-lemon-zest (list "ingredient-lemon-zest" #"\blemon\s+zest(?:\s+\(grated\))?\b"))
+(def rg-lemon (list "ingredient-lemon" #"\blemon\b"))
 (def rg-lemon-juice (list "ingredient-lemon-juice" #"\b(?:fresh\s+)?lemon\s+juice\b"))
-(def rg-pasta (list "ingredient-pasta" #"\b(?:dry\s+)?fettuccine\s+pasta\b"))
+(def rg-pasta (list "ingredient-pasta" #"\b(?:dry\s+)?(?:fettuccine\s)?+pasta\b"))
 (def rg-butter (list "ingredient-butter" #"\bbutter\b"))
-(def rg-cream (list "ingredient-cream" #"\bheavy\s+cream\b"))
+(def rg-cream (list "ingredient-cream" #"\b(?:heavy\s)?+cream\b"))
 (def rg-pepper (list "ingredient-pepper" #"\b(?:red\s+pepper\s+flakes|pepper)\b"))
-(def rg-garlic-salt (list "ingredient-garlic-salt" #"\bgarlic\s+salt\b"))
-(def rg-romano (list "ingredient-romano" #"\bgrated\s+romano\s+cheese\b"))
-(def rg-parmesan (list "ingredient-parmesan" #"\bgrated\s+parmesan\s+cheese\b"))
-(def rg-vinegar (list "ingredient-vinegar" #"\bwhite\s+wine\s+vinegar\b"))
-(def rg-garlic (list "ingredient-garlic" #"\bgarlic\s+clove(?:\s+\(minced\))?\b"))
-(def rg-oregano (list "ingredient-oregano" #"\bdried\s+oregano\b"))
+(def rg-garlic-salt (list "ingredient-garlic-salt" #"\b(?i:g)arlic\s+salt\b"))
+(def rg-romano (list "ingredient-romano" #"\bgrated\s+(?i:r)omano(?:\s+cheese)?\b"))
+(def rg-parmesan (list "ingredient-parmesan" #"\b(?:grated\s)?+(?i:p)armesan\s+cheese\b"))
+(def rg-vinegar (list "ingredient-vinegar" #"\b(?:white\s+wine\s)?+vinegar\b"))
+(def rg-garlic (list "ingredient-garlic" #"\bgarlic(?:\s+clove(?:s)?(?:\s+\(minced\))?)?\b"))
+(def rg-oregano (list "ingredient-oregano" #"\b(?:dried\s)?+oregano\b"))
 (def rg-paprika (list "ingredient-paprika" #"\bsmoked\s+paprika\b"))
 (def rg-parsley (list "ingredient-parsley" #"\b(?:fresh\s+)?flat-leaf\s+parsley\b"))
 
@@ -137,9 +145,6 @@
 (def rg-temp-c (list "temp-C" #"^[0-9]+°C"))
 (def rg-temp-f (list "temp-F" #"^[0-9]+°F"))
 
-(def rg-temp-f-range (list "temp-f-range" #"^[0-9]+°F\s*-\s*[0-9]+°F")) 
-(def rg-temp-c-range (list "temp-c-range" #"^[0-9]+°C\s*-\s*[0-9]+°C")) 
-
 (def rg-pt (list "prep-t" #"^Prep Time\:\s*[0-9]+\s*(?:mins|minutes)"))
 (def rg-ct (list "cook-t" #"^Cook Time\:\s*[0-9]+\s*(?:mins|minutes)"))
 (def rg-tt (list "total-t" #"^Total Time\:\s*[0-9]+\s*(?:mins|minutes)"))
@@ -148,7 +153,10 @@
 (def rg-fract-in (list "fract-in" #"[0-9]+/[0-9]+\""))
 
 ; Keywords 
-(def rg-ingredients (list "kw-ingredient" #"^Ingredients(\:)*"))
+(def rg-equip (list "kw-equip" #"^Equipment(?:\:)*"))
+(def rg-category (list "kw-category" #"^Category(?:\:)*"))
+(def rg-author (list "kw-author" #"^Author(?:\:)*"))
+(def rg-ingredients (list "kw-ingredient" #"^Ingredients(?:\:)*"))
 (def rg-instruct (list "kw-instruct" #"^Instructions"))
 
 (def rg-dash (list "dash" #"^[-]"))
@@ -179,10 +187,12 @@
                   rg-kosher-salt
                   rg-canola-oil
                   rg-extra-virgin-olive-oil
+                  rg-extra-virgin-light-oil
                   rg-olive-oil
                   rg-vanilla-extract
                   rg-lemon-zest-grated
                   rg-fresh-lemon-juice
+                  rg-lemon
                   rg-dry-fettuccine-pasta
                   rg-fettuccine-pasta
                   rg-heavy-cream
@@ -193,6 +203,7 @@
                   rg-parmesan-cheese
                   rg-white-wine-vinegar
                   rg-garlic-clove-minced
+                  rg-garlic-butter
                   rg-garlic-clove
                   rg-dried-oregano
                   rg-smoked-paprika
@@ -205,6 +216,7 @@
                   rg-unsalted-butter
                   rg-fresh-rosemary
                   rg-ground-almonds
+                  rg-vegetable-oil
 
                   ;; Ingredientes generales después
                   rg-sugar
@@ -234,8 +246,10 @@
                   rg-parsley
                   rg-steaks
                   rg-rosemary
+                  rg-canola
+                  rg-garlic-solo
 
-                  ; Unidades
+                    ; Unidades
                   rg-cup
                   rg-teaspoon
                   rg-tablespoon
@@ -254,19 +268,19 @@
                   rg-for-dusting
                   rg-gram
 
-                  ; Adding
+                    ; Adding
                   rg-serves
-                  ; Temps 
-                  rg-temp-f-range rg-temp-c-range ; First to check for ranges 
-                  rg-temp-c rg-temp-f ; Then just normal temp mentions
-                  ; Time mentions 
+                  rg-temp-c rg-temp-f
+                    ; Time mentions 
                   rg-pt rg-ct rg-tt
 
                     ; Keywords 
                   rg-ingredients rg-instruct
-
+                  rg-equip
                   rg-step-num
                   rg-fract-in
+                  rg-category
+                  rg-author
 
                     ; Catch case
                   rg-time-dash-range
