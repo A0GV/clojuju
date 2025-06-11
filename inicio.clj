@@ -1840,6 +1840,6 @@
 ;(main "options1.txt" 6)
 ;(main "options1.txt" 10)
 
-(main "options1.txt" 25)
+(main "options3.txt" 25)
 ;(main "options2.txt" 1)
 (println "Mixed convert: "  (mixedFrac "1 1/2")) ; Test fraction to make sure its an int
