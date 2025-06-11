@@ -1682,7 +1682,12 @@
     ;Elimino los espacios en el nombre
     (def nombre (map (fn [x] (clojure.string/replace x #" " "")) onlyname))
     (println nombre)
-    (doall (map (fn [x y] (spit (str "htmls/" x ".html") (str htmlcompleto "</br></br><div class='receta'>" y "</div>"))) nombre receras))
+    (doall
+      (map-indexed 
+        (fn [idx x]
+          (spit (str "htmls/" x (inc idx) ".html") ;inc aumenta el argumento en uno
+                (str htmlcompleto "</br></br><div class='receta'>" (nth receras idx) "</div>")))
+        nombre))
     (println "Se imprimió html de cada receta encontrada")
     
     ;(doall (map (fn [x] (println (nth x 1)"\n\nFINAL Recipe Tokens:\n")) fix-recipes))
