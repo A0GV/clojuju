@@ -632,110 +632,118 @@
 
 ; Processes line using result of whether user wants celcius
 ; Processes line using result of whether user wants celcius
-(defn process-token-line [token-line user-temp-units scale-factor]
-    ;(println "Processing token-line")
-    (if (seq token-line)
-        (doall 
-            (map (fn [token]
-                ; Recipe token is currently set to F and user wants C
-                (cond 
-                    ; Checks recipe F, user C
-                    (and 
-                        (not (nil? token)) 
-                        (not (empty? token))
-                        (= (first token) "temp-F") 
-                        user-temp-units
+(defn process-token-line [token-line user-temp-units scale-factor user-num-portions]
+  ;(println "Processing token-line")
+  (if (seq token-line)
+    (doall 
+        (map (fn [token]
+            ; Recipe token is currently set to F and user wants C
+            (cond 
+                ; Checks recipe F, user C
+                (and 
+                    (not (nil? token)) 
+                    (not (empty? token))
+                    (= (first token) "temp-F") 
+                    user-temp-units
+                )
+                    ; Need to convert F to C, calls funct
+                    (f-to-c (second token))
+                
+                ; Checks recipe C, user F
+                (and 
+                    (not (nil? token)) 
+                    (not (empty? token))
+                    (= (first token) "temp-C") 
+                    (not user-temp-units) ; False = Farenheit
+                )
+                    ; Calls funct to convert F -> C
+                    (c-to-f (second token))
+
+                ; Checks recipe range F, user C
+                (and 
+                    (not (nil? token)) 
+                    (not (empty? token))
+                    (= (first token) "temp-f-range") 
+                    user-temp-units ; True C
+                )
+                    ; Need to convert F to C, calls funct w value and user desired
+                    (temp-range-convert (second token) user-temp-units)
+
+                ; Checks recipe range C, user F
+                (and 
+                    (not (nil? token)) 
+                    (not (empty? token))
+                    (= (first token) "temp-c-range") 
+                    (not user-temp-units) ; False F
+                )
+                    ; Need to convert C to F, calls funct w value and user desired
+                    (temp-range-convert (second token) user-temp-units)
+
+                ; Update the servings amount number
+                (and
+                  (not (nil? token)) 
+                  (not (empty? token))
+                  (= (first token) "serves-amt") 
+                )
+                  (list "serves-amt" (str "Servings - " user-num-portions))
+
+                ; Checks if it is a number or simple fraction to convert 
+                (and 
+                    (not (nil? token)) 
+                    (not (empty? token))
+                    ; If it is a 
+                    (or (= (first token) "number-integer")
+                        (= (first token) "number-fraction")
                     )
-                        ; Need to convert F to C, calls funct
-                        (f-to-c (second token))
-                    
-                    ; Checks recipe C, user F
-                    (and 
-                        (not (nil? token)) 
-                        (not (empty? token))
-                        (= (first token) "temp-C") 
-                        (not user-temp-units) ; False = Farenheit
-                    )
-                        ; Calls funct to convert F -> C
-                        (c-to-f (second token))
+                )
+                  ; Multiplies current amt by scale factor 
+                  ;(println "FRACTION " (first token) "value: " extract-num-value (second token) )
+                  ;(list "number-scaled" (* scale-factor (extract-num-value (second token))) )
+                  ;(list "number-s-integer" (str (* scale-factor (extract-num-value token))))
+                  (let [
+                      original-str (second token)  ; Get the string value
+                      ; Convert a numero con adolf help
+                      original-value (numToInt original-str)  
+                      scaled-value (* scale-factor original-value)]
+                      (println "  Scaling number:" original-str "×" scale-factor "=" scaled-value)
+                      
+                      ; Structured list 
+                      (list "number-s" (str scaled-value))
+                  )
 
-                    ; Checks recipe range F, user C
-                    (and 
-                        (not (nil? token)) 
-                        (not (empty? token))
-                        (= (first token) "temp-f-range") 
-                        user-temp-units ; True C
-                    )
-                        ; Need to convert F to C, calls funct w value and user desired
-                        (temp-range-convert (second token) user-temp-units)
+                ; Converting a mixed fraction 
+                (and 
+                  (not (nil? token)) 
+                  (not (empty? token))
+                  ; If it is a mixed fraction
+                  (= (first token) "number-mixed")
+                )
+                  (do
+                      (println "MIXED: " (second token))
+                      (let [
+                          ; Fraccion number
+                          original-str (second token) 
+                          mixed-value (mixedFrac original-str) ; A ver si funciona con lo de adolf
+                          scaled-value (* scale-factor mixed-value)
+                          ]
 
-                    ; Checks recipe range C, user F
-                    (and 
-                        (not (nil? token)) 
-                        (not (empty? token))
-                        (= (first token) "temp-c-range") 
-                        (not user-temp-units) ; False F
-                    )
-                        ; Need to convert C to F, calls funct w value and user desired
-                        (temp-range-convert (second token) user-temp-units)
+                          ;(println "Proccessed: " mixed-value)
 
-                    ; Checks if it is a number or simple fraction to convert 
-                    (and 
-                        (not (nil? token)) 
-                        (not (empty? token))
-                        ; If it is a 
-                        (or (= (first token) "number-integer")
-                            (= (first token) "number-fraction")
-                        )
-                    )
-                        ; Multiplies current amt by scale factor 
-                        ;(println "FRACTION " (first token) "value: " extract-num-value (second token) )
-                        ;(list "number-scaled" (* scale-factor (extract-num-value (second token))) )
-                        ;(list "number-s-integer" (str (* scale-factor (extract-num-value token))))
-                        (let [
-                            original-str (second token)  ; Get the string value
-                            ; Convert a numero con adolf help
-                            original-value (numToInt original-str)  
-                            scaled-value (* scale-factor original-value)]
-                            (println "  Scaling number:" original-str "×" scale-factor "=" scaled-value)
-                            
-                            ; Structured list 
-                            (list "number-s" (str scaled-value))
-                        )
-
-                    ; Converting a mixed fraction 
-                    (and 
-                        (not (nil? token)) 
-                        (not (empty? token))
-                        ; If it is a mixed fraction
-                        (= (first token) "number-mixed")
-                    )
-                        (do
-                            (println "MIXED: " (second token))
-                            (let [
-                                ; Fraccion number
-                                original-str (second token) 
-                                mixed-value (mixedFrac original-str) ; A ver si funciona con lo de adolf
-                                scaled-value (* scale-factor mixed-value)
-                                ]
-
-                                ;(println "Proccessed: " mixed-value)
-
-                                (println "  Scaling mixed fraction:" mixed-value "×" scale-factor "=" scaled-value)
-                                
-                                ; Returns la lista con scaled mixed
-                                (list "number-s-mix" (str scaled-value))
-                            )
-                        )
+                          (println "  Scaling mixed fraction:" mixed-value "×" scale-factor "=" scaled-value)
+                          
+                          ; Returns la lista con scaled mixed
+                          (list "number-s-mix" (str scaled-value))
+                      )
+                  )
 
 
-                    ; Checks if it is a mixed fraction that needs to be converted 
+                ; Checks if it is a mixed fraction that needs to be converted 
 
-                    ; Else it can just stay how it is
-                    :else token
-                ))
-            token-line)) 
-        '("\t" "\t")) ; It is not a sequence
+                ; Else it can just stay how it is
+                :else token
+            ))
+        token-line)) 
+    '("\t" "\t")) ; It is not a sequence
 )
 
 ; Main function to manipulate one recipe at a time based on user preferences
@@ -745,16 +753,18 @@
         original-lines (second recipe)
         tokenized-lines (nth recipe 2)
 
-            ; Checks if user wants C
+        ; Checks if user wants C
         user-temp-units (= "C" (second (second (second user-options))))
-            ; Extracts number of portions that user wants, need read-string to handle that it's a string
+        
+        ; Extracts number of portions that user wants, need read-string to handle that it's a string
         user-num-portions (read-string (second (second (nth user-options 2))))
 
-            ; Find recipe number of servings from tokenized lines
+        ; Find recipe number of servings from tokenized lines
         recipe-serves
-                ; Extracts number value
+        
+        ; Extracts number value
         (extract-num-value
-                    ; Extract the token for serves 
+          ; Extract the token for serves 
          (second (first
                   (filter
                    (fn [token-line] (= (first token-line) "serves-amt"))
@@ -764,14 +774,17 @@
             ; Amt to scale a recipe
         scale-factor (/ user-num-portions recipe-serves)]
         (println "TEMP ADJ (F FALSE C TRUE): " user-temp-units)
-    (println "Processing recipe:" recipe-name " with" recipe-serves " user wants  " user-num-portions "; scaled: " scale-factor "\n")
+        (println "Processing recipe:" recipe-name " with" recipe-serves " user wants  " user-num-portions "; scaled: " scale-factor "\n")
 
         ; Process all tokenized lines
-    (let [corrected-temp (doall (map
-                                 (fn [token-line] (process-token-line token-line user-temp-units scale-factor)) tokenized-lines))]
+        (let [corrected-temp (doall (map
+                                 (fn [token-line] (process-token-line token-line user-temp-units scale-factor user-num-portions)) tokenized-lines))]
 
             ; Return updated recipe structure
-      (list recipe-name original-lines corrected-temp))))
+      (list recipe-name original-lines corrected-temp)
+    )
+  )
+)
 
 ;; ========================================
 ;; Inicio de conversiones
@@ -1618,7 +1631,123 @@
              "recipes/Chimichurri Sauce.txt"
              "recipes/Fettuccine Alfredo.txt"
              "recipes/Lemon Cake-1.txt"
-             "recipes/Pan-Seared Steak with Garlic Butter.txt"])
+             "recipes/Pan-Seared Steak with Garlic Butter.txt"
+
+             "recipes/Best Homemade Brownies-1.txt"
+             "recipes/Chimichurri Sauce.txt"
+             "recipes/Fettuccine Alfredo.txt"
+             "recipes/Lemon Cake-1.txt"
+             "recipes/Pan-Seared Steak with Garlic Butter.txt"
+
+             "recipes/Best Homemade Brownies-1.txt"
+             "recipes/Chimichurri Sauce.txt"
+             "recipes/Fettuccine Alfredo.txt"
+             "recipes/Lemon Cake-1.txt"
+             "recipes/Pan-Seared Steak with Garlic Butter.txt"
+
+             "recipes/Best Homemade Brownies-1.txt"
+             "recipes/Chimichurri Sauce.txt"
+             "recipes/Fettuccine Alfredo.txt"
+             "recipes/Lemon Cake-1.txt"
+             "recipes/Pan-Seared Steak with Garlic Butter.txt"
+
+             "recipes/Best Homemade Brownies-1.txt"
+             "recipes/Chimichurri Sauce.txt"
+             "recipes/Fettuccine Alfredo.txt"
+             "recipes/Lemon Cake-1.txt"
+             "recipes/Pan-Seared Steak with Garlic Butter.txt"
+
+             "recipes/Best Homemade Brownies-1.txt"
+             "recipes/Chimichurri Sauce.txt"
+             "recipes/Fettuccine Alfredo.txt"
+             "recipes/Lemon Cake-1.txt"
+             "recipes/Pan-Seared Steak with Garlic Butter.txt"
+
+             "recipes/Best Homemade Brownies-1.txt"
+             "recipes/Chimichurri Sauce.txt"
+             "recipes/Fettuccine Alfredo.txt"
+             "recipes/Lemon Cake-1.txt"
+             "recipes/Pan-Seared Steak with Garlic Butter.txt"
+
+             "recipes/Best Homemade Brownies-1.txt"
+             "recipes/Chimichurri Sauce.txt"
+             "recipes/Fettuccine Alfredo.txt"
+             "recipes/Lemon Cake-1.txt"
+             "recipes/Pan-Seared Steak with Garlic Butter.txt"
+
+             "recipes/Best Homemade Brownies-1.txt"
+             "recipes/Chimichurri Sauce.txt"
+             "recipes/Fettuccine Alfredo.txt"
+             "recipes/Lemon Cake-1.txt"
+             "recipes/Pan-Seared Steak with Garlic Butter.txt"
+
+             "recipes/Best Homemade Brownies-1.txt"
+             "recipes/Chimichurri Sauce.txt"
+             "recipes/Fettuccine Alfredo.txt"
+             "recipes/Lemon Cake-1.txt"
+             "recipes/Pan-Seared Steak with Garlic Butter.txt"
+
+             "recipes/Best Homemade Brownies-1.txt"
+             "recipes/Chimichurri Sauce.txt"
+             "recipes/Fettuccine Alfredo.txt"
+             "recipes/Lemon Cake-1.txt"
+             "recipes/Pan-Seared Steak with Garlic Butter.txt"
+
+             "recipes/Best Homemade Brownies-1.txt"
+             "recipes/Chimichurri Sauce.txt"
+             "recipes/Fettuccine Alfredo.txt"
+             "recipes/Lemon Cake-1.txt"
+             "recipes/Pan-Seared Steak with Garlic Butter.txt"
+
+             "recipes/Best Homemade Brownies-1.txt"
+             "recipes/Chimichurri Sauce.txt"
+             "recipes/Fettuccine Alfredo.txt"
+             "recipes/Lemon Cake-1.txt"
+             "recipes/Pan-Seared Steak with Garlic Butter.txt"
+
+             "recipes/Best Homemade Brownies-1.txt"
+             "recipes/Chimichurri Sauce.txt"
+             "recipes/Fettuccine Alfredo.txt"
+             "recipes/Lemon Cake-1.txt"
+             "recipes/Pan-Seared Steak with Garlic Butter.txt"
+
+             "recipes/Best Homemade Brownies-1.txt"
+             "recipes/Chimichurri Sauce.txt"
+             "recipes/Fettuccine Alfredo.txt"
+             "recipes/Lemon Cake-1.txt"
+             "recipes/Pan-Seared Steak with Garlic Butter.txt"
+
+             "recipes/Best Homemade Brownies-1.txt"
+             "recipes/Chimichurri Sauce.txt"
+             "recipes/Fettuccine Alfredo.txt"
+             "recipes/Lemon Cake-1.txt"
+             "recipes/Pan-Seared Steak with Garlic Butter.txt"
+
+             "recipes/Best Homemade Brownies-1.txt"
+             "recipes/Chimichurri Sauce.txt"
+             "recipes/Fettuccine Alfredo.txt"
+             "recipes/Lemon Cake-1.txt"
+             "recipes/Pan-Seared Steak with Garlic Butter.txt"
+
+             "recipes/Best Homemade Brownies-1.txt"
+             "recipes/Chimichurri Sauce.txt"
+             "recipes/Fettuccine Alfredo.txt"
+             "recipes/Lemon Cake-1.txt"
+             "recipes/Pan-Seared Steak with Garlic Butter.txt"
+
+             "recipes/Best Homemade Brownies-1.txt"
+             "recipes/Chimichurri Sauce.txt"
+             "recipes/Fettuccine Alfredo.txt"
+             "recipes/Lemon Cake-1.txt"
+             "recipes/Pan-Seared Steak with Garlic Butter.txt"
+
+             "recipes/Best Homemade Brownies-1.txt"
+             "recipes/Chimichurri Sauce.txt"
+             "recipes/Fettuccine Alfredo.txt"
+             "recipes/Lemon Cake-1.txt"
+             "recipes/Pan-Seared Steak with Garlic Butter.txt"
+             
+             ])
 
     ; Ajustar número de threads para evitar particiones vacías
   (def n-threads-ajustado (min num-threads (count ruta)))
@@ -1711,6 +1840,6 @@
 ;(main "options1.txt" 6)
 ;(main "options1.txt" 10)
 
-(main "options1.txt" 1)
+(main "options1.txt" 25)
 ;(main "options2.txt" 1)
 (println "Mixed convert: "  (mixedFrac "1 1/2")) ; Test fraction to make sure its an int
