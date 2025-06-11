@@ -983,11 +983,6 @@
 ; Extrae y parsea la configuración del sistema de conversiones desde la primera línea del archivo
 ; Determina qué tipo de conversiones aplicar (métrico, cups, teaspoons, etc.)
 (defn parse-system-config [first-line]
-  ; DEBUG: Imprime estructura de la primera línea
-  (println "DEBUG parse-system-config:")
-  (println "  First line structure:" first-line)
-  (println "  First element:" (first first-line))
-  (println "  Second element:" (second first-line))
 
   ; ARREGLO: Comparar como strings
   (cond
@@ -1007,28 +1002,6 @@
         (= (str system-value) "tablespoon") {:system "r-system" :target-unit "user-tablespoon"}
         ; Otros valores → retorna nil
         :else nil))
-
-    ; ALTERNATIVA: Si es formato de lista de listas
-    (and (list? first-line) (some list? first-line))
-    ; Busca un token "system:" dentro de las listas anidadas
-    (let [system-token (first (filter #(and (list? %)
-                                            (= (str (first %)) "system:")) first-line))]
-      ; Si encuentra el token system
-      (if system-token
-        ; Extrae el valor del sistema
-        (let [system-value (second system-token)]
-          (println "  Found nested system token with value:" system-value)
-          (cond
-            ; Si el valor es "metric" → configuración para auto-métrico
-            (= (str system-value) "metric") {:system "r-system" :target-unit "auto-metric"}
-            ; Si el valor es "cup" → configuración para user-cup
-            (= (str system-value) "cup") {:system "r-system" :target-unit "user-cup"}
-            ; Si el valor es "teaspoon" → configuración para user-teaspoon
-            (= (str system-value) "teaspoon") {:system "r-system" :target-unit "user-tablespoon"}
-            ; Si el valor es "tablespoon" → configuración para user-tablespoon
-            (= (str system-value) "tablespoon") {:system "r-system" :target-unit "user-tablespoon"}
-            ; Otros valores → retorna nil
-            :else nil))))
 
     ; Si no encuentra nada
     :else
@@ -1230,50 +1203,73 @@
 
 ; Extrae información de ingredientes con cantidades en gramos de una línea tokenizada
 (defn extract-ingredient-grams [token-line]
+  ; Busca el token de ingrediente en la línea de tokens
   (let [ingredient-token (find-ingredient-in-line token-line)]
+    ; Si se encontró un ingrediente en la línea
     (if ingredient-token
+      ; Extrae la clave del ingrediente (primer elemento del token)
       (let [ingredient-key (str (first ingredient-token))
-            ; Busca pares cantidad escalada + unidad de peso/volumen
+            ; Busca pares de cantidad escalada + unidad de peso/volumen en la línea
             quantity-unit-pairs (find-quantity-unit-pairs token-line)]
+        ; Si se encontraron pares cantidad-unidad
         (if (not (empty? quantity-unit-pairs))
+          ; Toma el primer par cantidad-unidad encontrado
           (let [first-pair (first quantity-unit-pairs)
+                ; Convierte el valor de cantidad del token a número
                 quantity-value (convert-quantity-value (:quantity first-pair))
+                ; Extrae el tipo de unidad (primer elemento del token de unidad)
                 unit-type (str (first (:unit first-pair)))
-                ; Convierte todo a gramos para cálculo de calorías
+                ; Convierte todo a gramos para cálculo de calorías usando factores específicos del ingrediente
                 grams (convert-to-grams quantity-value ingredient-key unit-type)]
+            ; Retorna mapa con ingrediente y su peso en gramos
             {:ingredient ingredient-key :grams grams}))))))
 
 ; Calcula las calorías totales de una receta procesada
 (defn calculate-recipe-calories [processed-recipe]
+  ; Extrae el nombre de la receta (primer elemento de la lista)
   (let [recipe-name (first processed-recipe)
+        ; Extrae las líneas convertidas de tokens (tercer elemento de la lista)
         converted-lines (nth processed-recipe 2)
-        ; Extrae ingredientes con gramos de todas las líneas
+        ; Filtra y extrae ingredientes con sus pesos en gramos de todas las líneas
+        ; Usa filter identity para remover valores nil
         ingredients-with-grams (filter identity
+                                       ; Mapea cada línea para extraer ingredientes con gramos
                                        (map extract-ingredient-grams converted-lines))
-        ; Calcula calorías para cada ingrediente
+        ; Calcula las calorías para cada ingrediente encontrado
         calories-per-ingredient (map (fn [ing-data]
+                                       ; Extrae la clave del ingrediente del mapa
                                        (let [ingredient (:ingredient ing-data)
+                                             ; Extrae el peso en gramos del mapa
                                              grams (:grams ing-data)
+                                             ; Calcula las calorías usando la función calculate-calories
                                              calories (calculate-calories ingredient grams)]
+                                         ; Retorna mapa con ingrediente, gramos y calorías calculadas
                                          {:ingredient ingredient 
                                           :grams grams 
                                           :calories calories}))
+                                     ; Aplica la función a cada ingrediente con gramos
                                      ingredients-with-grams)
-        ; Suma todas las calorías
+        ; Suma todas las calorías de todos los ingredientes para obtener el total
         total-calories (reduce + (map :calories calories-per-ingredient))
-        ; Extrae número de porciones
+        ; Busca el token que contiene el número de porciones de la receta
         serves-token (first (filter identity
+                                    ; Mapea cada línea buscando tokens de tipo "serves-amt"
                                     (map (fn [line]
+                                           ; Busca el primer token con tipo "serves-amt" en la línea
                                            (first (filter #(= (str (first %)) "serves-amt") line)))
+                                         ; Aplica a todas las líneas convertidas
                                          converted-lines)))
+        ; Extrae el número de porciones del token encontrado, o usa 1 como default
         servings (if serves-token (extract-num-value (second serves-token)) 1)
+        ; Calcula las calorías por porción dividiendo total entre número de porciones
         calories-per-serving (/ total-calories servings)]
-    
+    ; Retorna mapa con toda la información calórica de la receta
     {:recipe-name recipe-name
      :ingredients calories-per-ingredient
      :total-calories total-calories
      :servings servings
      :calories-per-serving calories-per-serving}))
+
 
 ; Procesa múltiples recetas y calcula sus calorías
 (defn process-recipes-calories [converted-recipes]
@@ -1364,7 +1360,7 @@
                  token))
              normalized-tokens)
 
-        ; Procesar pares cantidad-unidad (conversión completa)
+        ; Procesar pares cantidad-unidad
         ; Extrae clave del ingrediente
         (let [ingredient-key (str (first ingredient-token))
               ; Procesa cada par cantidad-unidad
@@ -1375,7 +1371,7 @@
                                                        (:unit pair)
                                                        ingredient-key
                                                        config)]
-                                   ; Enriquece el par original con valores convertidos
+                                   ; Agrega a el par original con valores convertidos
                                    (assoc pair
                                           :new-quantity (first converted-pair)
                                           :new-unit (second converted-pair))))
@@ -1432,74 +1428,128 @@
 ; Analyze all recipes and apply manipulations with calorie calculation
 ; Analyze all recipes and apply manipulations with calorie calculation (NESTED LISTS OUTPUT)
 (defn analyze-recipes [processed-recipes user-tokens]
+  ; Extrae el filtro del usuario desde el último token de las opciones
   (let [filtro (first (second (last user-tokens)))]
+    ; Verifica si el filtro es "r-all" (mostrar todas las recetas)
     (if (= filtro "r-all")
-      (let [manipulated-recipes (doall (map (fn [recipe]
+      ; RAMA 1: Procesar todas las recetas sin filtrado
+      (let [; Aplica manipulaciones (escalado y conversión de temperatura) a cada receta
+            manipulated-recipes (doall (map (fn [recipe]
+                                              ; Llama a manipulate-recipe para cada receta individual
                                               (manipulate-recipe recipe user-tokens))
                                             processed-recipes))]
 
+        ; Imprime cuántas recetas fueron procesadas
         (println "Processed" (count manipulated-recipes) "recipes")
 
-        (let [user-system-pref (second (second (first user-tokens)))
+        ; Inicia el proceso de conversión de unidades
+        (let [; Extrae la preferencia de sistema del usuario (metric, cup, etc.)
+              user-system-pref (second (second (first user-tokens)))
+              ; Aplica conversiones de unidades a cada receta manipulada
               converted-recipes (doall (map (fn [recipe]
+                                              ; Extrae el nombre de la receta
                                               (let [recipe-name (first recipe)
+                                                    ; Extrae las líneas originales sin procesar
                                                     original-lines (second recipe)
+                                                    ; Extrae las líneas tokenizadas y escaladas
                                                     scaled-tokenized-lines (nth recipe 2)
+                                                    ; Crea configuración del sistema para conversiones
                                                     system-config (list "system:" user-system-pref)
+                                                    ; Combina configuración con datos de la receta
                                                     recipe-data (cons system-config scaled-tokenized-lines)
+                                                    ; Aplica conversiones de unidades usando convert-recipe
                                                     converted-data (convert-recipe recipe-data)]
+                                                ; Si la conversión fue exitosa
                                                 (if converted-data
+                                                  ; Retorna receta con datos convertidos
                                                   (list recipe-name original-lines (doall converted-data))
+                                                  ; Si falló, mantiene los datos escalados originales
                                                   (list recipe-name original-lines (doall scaled-tokenized-lines)))))
                                             manipulated-recipes))
+              ; Calcula información calórica para todas las recetas convertidas
               calorie-data (doall (process-recipes-calories converted-recipes))
+              ; Formatea los resultados finales combinando recetas y calorías
               final-results (format-final-results converted-recipes calorie-data)]
 
+          ; Imprime información de debug sobre conversiones aplicadas
           (println "Applied unit conversions to scaled recipes:" (count converted-recipes))
+          ; Muestra la preferencia de usuario utilizada
           (println "Using user preference:" user-system-pref)
 
+          ; Imprime los resultados finales
           (println "\nFINAL RESULTS:")
           (println final-results)
 
+          ; Retorna los resultados finales
           final-results))
 
-       ; Segunda rama para manejar filtros específicos
-       ; Esta rama se utiliza cuando el usuario ha especificado un filtro para buscar recetas que contengan una palabra o frase determinada.
-       ; Filtra las recetas basándose en los tokens que coincidan con el filtro proporcionado por el usuario.
-        (let [recetas-filtradas
-          (filter (fn [recipe] (some
-                    (fn [token-line]
-                  (some (fn [token] (= (second token) (second (second (last user-tokens))))) token-line))
-                    (nth recipe 2)))
+       ; RAMA 2: Procesar solo recetas que coincidan con un filtro específico
+       ; Esta rama se ejecuta cuando el usuario ha especificado un filtro personalizado
+       (let [; Filtra recetas que contengan el texto especificado por el usuario
+             recetas-filtradas
+          ; Usa filter para mantener solo recetas que cumplan la condición
+          (filter (fn [recipe] 
+                    ; Busca en todas las líneas de tokens de la receta
+                    (some
+                      (fn [token-line]
+                        ; Busca en todos los tokens de cada línea
+                        (some (fn [token] 
+                                ; Compara el texto del token con el filtro del usuario
+                                (= (second token) (second (second (last user-tokens))))) 
+                              token-line))
+                      ; Revisa las líneas tokenizadas (índice 2) de la receta
+                      (nth recipe 2)))
+              ; Aplica el filtro a todas las recetas procesadas
               processed-recipes)]
+          ; Imprime cuántas recetas pasaron el filtro
           (println "Recetas filtradas:" (count recetas-filtradas))
-          ;;Procesar las recetas filtradas con manipulate-recipe
-          (let [manipulated-recipes (doall (map (fn [recipe] (manipulate-recipe recipe user-tokens)) recetas-filtradas))]
+          
+          ; Procesa las recetas filtradas aplicando manipulaciones (escalado, temperatura)
+          (let [manipulated-recipes (doall (map (fn [recipe] 
+                                                  ; Aplica manipulate-recipe a cada receta filtrada
+                                                  (manipulate-recipe recipe user-tokens)) 
+                                                recetas-filtradas))]
 
+            ; Imprime cuántas recetas filtradas fueron procesadas
             (println "Processed" (count manipulated-recipes) "filtered recipes")
 
-            (let [user-system-pref (second (second (first user-tokens)))
-              converted-recipes (doall (map (fn [recipe]
-                      (let [recipe-name (first recipe)
-                        original-lines (second recipe)
-                        scaled-tokenized-lines (nth recipe 2)
-                        system-config (list "system:" user-system-pref)
-                        recipe-data (cons system-config scaled-tokenized-lines)
-                        converted-data (convert-recipe recipe-data)]
-                        (if converted-data
-                          (list recipe-name original-lines (doall converted-data))
-                          (list recipe-name original-lines (doall scaled-tokenized-lines)))))
-                        manipulated-recipes)) ; 
-              calorie-data (doall (process-recipes-calories converted-recipes))
-              final-results (format-final-results converted-recipes calorie-data)]
+            ; Aplica conversiones de unidades a las recetas filtradas y manipuladas
+            (let [; Extrae la preferencia de sistema del usuario
+                  user-system-pref (second (second (first user-tokens)))
+                  ; Aplica conversiones de unidades a cada receta filtrada
+                  converted-recipes (doall (map (fn [recipe]
+                          ; Extrae componentes de la receta
+                          (let [recipe-name (first recipe)
+                            original-lines (second recipe)
+                            scaled-tokenized-lines (nth recipe 2)
+                            ; Crea configuración del sistema
+                            system-config (list "system:" user-system-pref)
+                            ; Combina configuración con datos de receta
+                            recipe-data (cons system-config scaled-tokenized-lines)
+                            ; Aplica conversiones usando convert-recipe
+                            converted-data (convert-recipe recipe-data)]
+                            ; Si conversión exitosa, usa datos convertidos
+                            (if converted-data
+                              (list recipe-name original-lines (doall converted-data))
+                              ; Si falla, mantiene datos escalados
+                              (list recipe-name original-lines (doall scaled-tokenized-lines)))))
+                            ; Aplica a todas las recetas manipuladas filtradas
+                            manipulated-recipes))
+                  ; Calcula calorías para recetas convertidas y filtradas
+                  calorie-data (doall (process-recipes-calories converted-recipes))
+                  ; Formatea resultados finales
+                  final-results (format-final-results converted-recipes calorie-data)]
 
-          (println "Applied unit conversions to scaled recipes:" (count converted-recipes))
-          (println "Using user preference:" user-system-pref)
+              ; Imprime información de debug
+              (println "Applied unit conversions to scaled recipes:" (count converted-recipes))
+              (println "Using user preference:" user-system-pref)
 
-          (println "\nFINAL RESULTS:")
-          (println final-results)
+              ; Muestra resultados finales
+              (println "\nFINAL RESULTS:")
+              (println final-results)
 
-          final-results))))))
+              ; Retorna resultados finales de recetas filtradas
+              final-results))))))
 
 ;;IMPRIMIR EN HTML
 (defn convert [class text]
@@ -1656,6 +1706,6 @@
 ;(main "options1.txt" 6)
 ;(main "options1.txt" 10)
 
-(main "options2.txt" 1)
+(main "options1.txt" 1)
 ;(main "options2.txt" 1)
 (println "Mixed convert: "  (mixedFrac "1 1/2")) ; Test fraction to make sure its an int
