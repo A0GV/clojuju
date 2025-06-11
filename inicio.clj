@@ -1458,49 +1458,48 @@
           (println "Applied unit conversions to scaled recipes:" (count converted-recipes))
           (println "Using user preference:" user-system-pref)
 
-          ; Solo mostrar la estructura de lista anidada
           (println "\nFINAL RESULTS:")
           (println final-results)
 
-          ; Retornar la estructura
-          final-results)
-      )
-      (let [recetas-filtradas 
-                    (filter (fn [recipe] (some
-                                (fn [token-line]
-                                    (some (fn [token] (= (second token) (second (second (last user-tokens))))) token-line))
-                                (nth recipe 2)))
-                        processed-recipes)]
-                (println "Recetas filtradas:" (count recetas-filtradas))
-                (doall (map (fn [recipe] (manipulate-recipe recipe user-tokens)) recetas-filtradas))
-                (let [user-system-pref (second (second (first user-tokens)))
-                converted-recipes (doall (map (fn [recipe]
-                                                (let [recipe-name (first recipe)
-                                                      original-lines (second recipe)
-                                                      scaled-tokenized-lines (nth recipe 2)
-                                                      system-config (list "system:" user-system-pref)
-                                                      recipe-data (cons system-config scaled-tokenized-lines)
-                                                      converted-data (convert-recipe recipe-data)]
-                                                  (if converted-data
-                                                    (list recipe-name original-lines (doall converted-data))
-                                                    (list recipe-name original-lines (doall scaled-tokenized-lines)))))
-                                              recetas-filtradas))
-                calorie-data (doall (process-recipes-calories converted-recipes))
-                final-results (second(format-final-results converted-recipes calorie-data))]
+          final-results))
 
-            (println "Applied unit conversions to scaled recipes:" (count converted-recipes))
-            (println "Using user preference:" user-system-pref)
+       ; Segunda rama para manejar filtros específicos
+       ; Esta rama se utiliza cuando el usuario ha especificado un filtro para buscar recetas que contengan una palabra o frase determinada.
+       ; Filtra las recetas basándose en los tokens que coincidan con el filtro proporcionado por el usuario.
+        (let [recetas-filtradas
+          (filter (fn [recipe] (some
+                    (fn [token-line]
+                  (some (fn [token] (= (second token) (second (second (last user-tokens))))) token-line))
+                    (nth recipe 2)))
+              processed-recipes)]
+          (println "Recetas filtradas:" (count recetas-filtradas))
+          ;;Procesar las recetas filtradas con manipulate-recipe
+          (let [manipulated-recipes (doall (map (fn [recipe] (manipulate-recipe recipe user-tokens)) recetas-filtradas))]
 
-            ; Solo mostrar la estructura de lista anidada
-            (println "\nFINAL RESULTS:")
-            (println final-results)
+            (println "Processed" (count manipulated-recipes) "filtered recipes")
 
-            ; Retornar la estructura
-            final-results)
-      )
-    )
-  )
-)
+            (let [user-system-pref (second (second (first user-tokens)))
+              converted-recipes (doall (map (fn [recipe]
+                      (let [recipe-name (first recipe)
+                        original-lines (second recipe)
+                        scaled-tokenized-lines (nth recipe 2)
+                        system-config (list "system:" user-system-pref)
+                        recipe-data (cons system-config scaled-tokenized-lines)
+                        converted-data (convert-recipe recipe-data)]
+                        (if converted-data
+                          (list recipe-name original-lines (doall converted-data))
+                          (list recipe-name original-lines (doall scaled-tokenized-lines)))))
+                        manipulated-recipes)) ; 
+              calorie-data (doall (process-recipes-calories converted-recipes))
+              final-results (format-final-results converted-recipes calorie-data)]
+
+          (println "Applied unit conversions to scaled recipes:" (count converted-recipes))
+          (println "Using user preference:" user-system-pref)
+
+          (println "\nFINAL RESULTS:")
+          (println final-results)
+
+          final-results))))))
 
 ;;IMPRIMIR EN HTML
 (defn convert [class text]
@@ -1657,6 +1656,6 @@
 ;(main "options1.txt" 6)
 ;(main "options1.txt" 10)
 
-(main "options1.txt" 1)
+(main "options2.txt" 1)
 ;(main "options2.txt" 1)
 (println "Mixed convert: "  (mixedFrac "1 1/2")) ; Test fraction to make sure its an int
