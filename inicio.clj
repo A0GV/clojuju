@@ -1002,7 +1002,7 @@
         ; Si el valor es "cup" → configuración para user-cup
         (= (str system-value) "cup") {:system "r-system" :target-unit "user-cup"}
         ; Si el valor es "teaspoon" → configuración para user-teaspoon
-        (= (str system-value) "teaspoon") {:system "r-system" :target-unit "user-tablespoon"}
+        (= (str system-value) "teaspoon") {:system "r-system" :target-unit "user-teaspoon"}
         ; Si el valor es "tablespoon" → configuración para user-tablespoon
         (= (str system-value) "tablespoon") {:system "r-system" :target-unit "user-tablespoon"}
         ; Otros valores → retorna nil
