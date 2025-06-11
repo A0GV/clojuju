@@ -213,3 +213,21 @@ h2{
     color: #3e5e6c;
     font-weight: 510;
 }
+
+.TotCal, .total-cal{
+    background-color: #167086;
+    margin-top: 30px;
+    color: #faf9f5;
+    padding: 0 10px 0 10px;
+}
+.servCal, .serving-cal{
+    background-color: #0f4b5a;
+    color: #faf9f5;
+    padding: 0 10px 0 10px;
+}
+
+.temp-c, .temp-f, .temp-c-range{
+    padding: 0 10px 0 10px;
+    background-color: #096317;
+    color: #faf9f5;
+}
