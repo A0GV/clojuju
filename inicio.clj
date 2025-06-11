@@ -1587,6 +1587,10 @@
 
 ; Función principal que checa recetas con el número de opciones seleccionadas y threads especificados 
 (defn main [options-file num-threads]
+  ; Eliminar todos los archivos .html en la carpeta htmls antes de generar nuevos
+  (doall (map #(.delete %) 
+            (filter #(.endsWith (.getName %) ".html") 
+                    (.listFiles (clojure.java.io/file "htmls")))))
     ; Leer options file y guardar preferencias del usuario 
   (def options-path (str "options/" options-file))
   (println "\n-------FILE PATH: " options-path)
@@ -1840,6 +1844,6 @@
 ;(main "options1.txt" 6)
 ;(main "options1.txt" 10)
 
-(main "options3.txt" 25)
-;(main "options2.txt" 1)
+;(main "options3.txt" 25)
+(main "options2.txt" 1)
 (println "Mixed convert: "  (mixedFrac "1 1/2")) ; Test fraction to make sure its an int
