@@ -293,7 +293,8 @@
                   rg-time-mention
                   rg-catch
                   rg-dash
-                  rg-8x8))
+                  rg-8x8
+                  ))
 
 ;; Conversiones de ingredientes (diccionario nuevo como solicitas)
 (def ingredient-conversions
@@ -1488,7 +1489,7 @@
               calorie-data (doall (process-recipes-calories converted-recipes))
               ; Formatea los resultados finales combinando recetas y calorías
               final-results (format-final-results converted-recipes calorie-data)]
-
+              
           ; Imprime información de debug sobre conversiones aplicadas
           (println "Applied unit conversions to scaled recipes:" (count converted-recipes))
           ; Muestra la preferencia de usuario utilizada
@@ -1519,6 +1520,8 @@
                       (nth recipe 2)))
               ; Aplica el filtro a todas las recetas procesadas
               processed-recipes)]
+          
+          
           ; Imprime cuántas recetas pasaron el filtro
           (println "Recetas filtradas:" (count recetas-filtradas))
           
@@ -1608,6 +1611,8 @@
   (def opt-lines (map list file-lines))
   (println opt-lines)
 
+  
+
   (def opt-tokenized
     (doall
      (map (fn [current-line]
@@ -1617,6 +1622,14 @@
   (println "\n-------TOKENIZED")
   (println opt-tokenized)
 
+  (def rg-filtrado (list "filtradito" (re-pattern (str (second (second (last opt-tokenized)))))))
+  
+  ; Redefinir dict-recipe dinámicamente según el filtro del usuario, sin cambiarle el nombre
+  (def dict-recipe
+  (if (= (str (second (second (last opt-tokenized)))) "all")
+    dict-recipe
+    (concat (list rg-filtrado) dict-recipe)))
+  
   ; HTML con header
   (println "\n-------HTML")
   (def htmlcompleto (str header "<div class='options'>"(html opt-tokenized)"</div>"))
@@ -1630,12 +1643,12 @@
   (println (str "Procesando con archivo de opciones: " options-file))
   (println (str "Número de threads: " num-threads))
 
-    ; Definir rutas de recetas
-    ;(def ruta ["recipes/Best Homemade Brownies-1.txt" 
-    ;           "recipes/Chimichurri Sauce.txt" 
-    ;           "recipes/Lemon Cake-1.txt"
-    ;           "recipes/Fettuccine Alfredo.txt"
-    ;           "recipes/Pan-Seared Steak with Garlic Butter.txt"])
+    ;;  Definir rutas de recetas
+    ;; (def ruta ["recipes/Best Homemade Brownies-1.txt" 
+    ;;            "recipes/Chimichurri Sauce.txt" 
+    ;;            "recipes/Lemon Cake-1.txt"
+    ;;            "recipes/Fettuccine Alfredo.txt"
+    ;;            "recipes/Pan-Seared Steak with Garlic Butter.txt"])
   (def ruta ["recipes/Best Homemade Brownies-1.txt"
              "recipes/Chimichurri Sauce.txt"
              "recipes/Fettuccine Alfredo.txt"
@@ -1849,6 +1862,6 @@
 ;(main "options1.txt" 6)
 ;(main "options1.txt" 10)
 
-(main "options1.txt" 25)
-;(main "options2.txt" 1)
+;(main "options1.txt" 25)
+(main "options2.txt" 2)
 (println "Mixed convert: "  (mixedFrac "1 1/2")) ; Test fraction to make sure its an int
