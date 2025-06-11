@@ -402,15 +402,20 @@
 ; Lista de unidades que NO deben convertirse a cups
 (def non-volume-units
   #{"large" "medium" "small" "clove" "cloves" "piece" "pieces"})
+(def  non-tsp-units
+  #{"in" "inches" "fract-in" "cm" "lb" "lbs" "pounds"})
 
 
 
-(defn should-convert-to-volume? [ingredient-key unit-key target-unit]
+(defn should-convert-to-volume? [ unit-key target-unit]
   (cond
     ; Si el sistema es métrico, convertir todo excepto unidades no-volumétricas
-    (= target-unit "auto-metric")
+    (= target-unit "user-metric")
     (not (contains? non-volume-units unit-key))
-
+    
+    (contains? #{"user-cup" "user-teaspoon" "user-tablespoon"} target-unit)
+    (and (not (contains? non-volume-units unit-key))
+         (not (contains? non-tsp-units unit-key)))
     ; Para otros sistemas, mantener lógica original
     :else
     (not (contains? non-volume-units unit-key))))
@@ -975,7 +980,7 @@
 (defn get-output-unit-name [target-unit converted-unit]
   (cond
     ; Si es auto-métrico, usar la unidad convertida específica
-    (= target-unit "auto-metric")
+    (= target-unit "user-metric")
     (cond
       (= converted-unit "gram") "grams"
       (= converted-unit "cm") "cm"
@@ -1006,7 +1011,7 @@
       (println "  Found system token with value:" system-value)
       (cond
         ; Si el valor es "metric" → configuración para auto-métrico
-        (= (str system-value) "metric") {:system "r-system" :target-unit "auto-metric"}
+        (= (str system-value) "metric") {:system "r-system" :target-unit "user-metric"}
         ; Si el valor es "cup" → configuración para user-cup
         (= (str system-value) "cup") {:system "r-system" :target-unit "user-cup"}
         ; Si el valor es "teaspoon" → configuración para user-teaspoon
@@ -1131,14 +1136,14 @@
           ; Extrae la unidad objetivo de la configuración
           target-unit (:target-unit config)]
       ; Verifica si debe convertir usando función should-convert-to-volume?
-      (if (not (should-convert-to-volume? ingredient-key unit-type target-unit))
+      (if (not (should-convert-to-volume? unit-type target-unit))
         ; No convertir - mantener original pero con cantidad parseada
         (list (list (first quantity-token) parsed-quantity) unit-token)
 
         ; SÍ convertir - procesar según el tipo de objetivo
         (cond
           ; Si el objetivo es auto-métrico
-          (= target-unit "auto-metric")
+          (= target-unit "user-metric")
           ; Convierte usando convert-to-metric
           (let [metric-conversion (convert-to-metric parsed-quantity unit-type ingredient-key)
                           ; Extrae cantidad convertida
@@ -1840,6 +1845,6 @@
 ;(main "options1.txt" 6)
 ;(main "options1.txt" 10)
 
-(main "options3.txt" 25)
-;(main "options2.txt" 1)
+(main "options1.txt" 25)
+;(main "optios2.txt" 1)
 (println "Mixed convert: "  (mixedFrac "1 1/2")) ; Test fraction to make sure its an int
