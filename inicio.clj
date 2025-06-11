@@ -777,12 +777,6 @@
 ;; Inicio de conversiones
 ;; ========================================
 
-; Función que calcula calorías basándose en gramos de ingrediente
-(defn calculate-calories [ingredient-token grams]
-  ; Busca las calorías por 100g del ingrediente en el diccionario IngCal100, si no existe devuelve 0
-  (let [calories-per-100g (get IngCal100 ingredient-token 0)]
-    ; Calcula las calorías: (gramos ÷ 100) × calorías_por_100g
-    (* (/ grams 100.0) calories-per-100g)))
 
 ;; ========================================
 ;; CÁLCULO DE CALORÍAS
@@ -853,9 +847,7 @@
       (= unit-type "ounce") (:oz-to-grams conversions)
       ; Si es pint → factor fijo 473.176 (1 pint = 473.176 ml ≈ 473.176 g para líquidos)
       (= unit-type "pint") 473.176
-      ; Si es pulgadas → factor 1.0 (primera línea duplicada)
-      (or (= unit-type "in") (= unit-type "inches")) 1.0
-      ; Si es pulgadas → factor 1.0 (segunda línea duplicada)
+      ; Si es pulgadas → factor 1.0
       (or (= unit-type "in") (= unit-type "inches")) 1.0
       ; Caso por defecto → factor 1.0
       :else 1.0)))
@@ -1297,18 +1289,18 @@
 
 (defn format-final-results [converted-recipes calorie-data]
   ; Construye lista de resultados con estructura simplificada
-  (list "results"
+  
         ; Mapea cada par receta-calorías a formato final simplificado
         (doall (map (fn [recipe calorie-info]
                       ; Crea lista con: nombre, tokens, calorías totales, calorías por porción
                       (list (first recipe)           ; nombre de receta (primer elemento)
                             (nth recipe 2)           ; tokens convertidos (tercer elemento)
                             ; Token separado para calorías totales
-                            (list (list "total-cal" (str "Total calories: " (:total-calories calorie-info))))
-                            ; Token separado para calorías por porción
-                            (list (list "serving-cal" (str "Calories per serving: " (:calories-per-serving calorie-info))))))
-                    ; Procesa todas las recetas con sus datos de calorías
-                    converted-recipes calorie-data))))
+                            (concat (nth recipe 2)   ; tokens convertidos existentes
+                                                          ; Agregar tokens de calorías como líneas separadas
+                                         [(list (list "TotCal" "Total Calories:" )(list "total-cal" (:total-calories calorie-info)))
+                                          (list (list "servCal" "Calories per serving: ")(list "serving-cal" (:calories-per-serving calorie-info)))])))
+                               converted-recipes calorie-data)))
 
 
 ;; ========================================
@@ -1461,7 +1453,7 @@
                                                   (list recipe-name original-lines (doall scaled-tokenized-lines)))))
                                             manipulated-recipes))
               calorie-data (doall (process-recipes-calories converted-recipes))
-              final-results (second(format-final-results converted-recipes calorie-data))]
+              final-results (format-final-results converted-recipes calorie-data)]
 
           (println "Applied unit conversions to scaled recipes:" (count converted-recipes))
           (println "Using user preference:" user-system-pref)
@@ -1626,7 +1618,7 @@
     ;IMPRIMIR HTMLS
     (def receras 
         (map (fn [x] 
-                (let [tokenized-lines (nth x 1)
+                (let [tokenized-lines (nth x 2)
                     first-line (list (second tokenized-lines))
                     rest-lines (rest tokenized-lines)
                     ; Crea el h2 para la primera línea
