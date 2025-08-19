@@ -463,7 +463,14 @@
 
 ;; Uses text from tokens to find which one is longest 
 (define (get-max-len match-list)
-  (apply max (map (lambda (match) (string-length (second match))) match-list)))
+  (if (empty? match-list)
+      0
+      (apply max (map (lambda (match) 
+                        (let ([second-elem (second match)])
+                          (if (string? second-elem)
+                              (string-length second-elem)
+                              0))) 
+                      match-list))))
 
 ;; Uses item matched from list and keeps only the one that meets the longest length found  
 (define (filter-max matches max-len)
@@ -506,19 +513,20 @@
      (let* ([input-trim (string-trim input)] ; Para hacer llamadas, ya quita los empty spaces
             [type-txtmatch (longest-match input-trim rg-dict)]
             [extracted-txt (second type-txtmatch)] ; Finds the token text
-            [length (string-length extracted-txt)] ; Counts how long the token text is
-            [pos-match-start (let ([pos (string-contains? input-trim extracted-txt)])
-                               (if pos pos 0))]
-            [rest-input (cond
-                          [(equal? "NA" (first type-txtmatch))
-                           ;; NA case: longest-match already took 1 char, so skip 1 char
-                           (string-trim (safe-substring input-trim 1))]
-                          [else
-                           ;; Match found: skip past the entire matched text
-                           (string-trim (safe-substring input-trim (+ pos-match-start length)))])])
-       ;; Build list 
-       (cons (list (first type-txtmatch) extracted-txt)
-             (tokenize rest-input rg-dict)))]))
+            [length (string-length extracted-txt)]) ; Counts how long the token text is
+       
+       (let* ([pos-match-start (let ([pos-result (regexp-match-positions (regexp-quote extracted-txt) input-trim)])
+                                 (if pos-result (caar pos-result) 0))]
+              [rest-input (cond
+                            [(equal? "NA" (first type-txtmatch))
+                             ;; NA case: longest-match already took 1 char, so skip 1 char
+                             (string-trim (safe-substring input-trim 1))]
+                            [else
+                             ;; Match found: skip past the entire matched text
+                             (string-trim (safe-substring input-trim (+ pos-match-start length)))])])
+         ;; Build list 
+         (cons (list (first type-txtmatch) extracted-txt)
+               (tokenize rest-input rg-dict))))]))
 
 ;; Continue with the conversion of the next portion...
 
